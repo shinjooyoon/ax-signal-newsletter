@@ -104,18 +104,24 @@ export async function getTagPicks(supabase, tagId) {
 
 /**
  * 외부뉴스("뉴스" 섹션)는 태그 매칭 없이 전체 구독자가 공유하는 큐에서 다음 것 2개를 고른다
- * (SK AX와 같은 방식). is_pinned도 아니고 SK 계열사도 아닌 콘텐츠 전체가 후보.
+ * (SK AX와 같은 방식). is_pinned도 아니고 SK 계열사도 아닌 콘텐츠 전체가 후보이되,
+ * Claude 태깅 단계에서 태그가 하나도 안 붙은(=AI/AX와 무관하다고 판단된) 콘텐츠는 제외한다.
  */
 export async function getExternalNewsPicks(supabase, count = 2) {
   const { data: usedRows } = await supabase.from('external_news_history').select('content_item_id');
   const usedIds = new Set((usedRows ?? []).map((r) => r.content_item_id));
+
+  const { data: taggedRows } = await supabase.from('content_tags').select('content_item_id');
+  const taggedIds = new Set((taggedRows ?? []).map((r) => r.content_item_id));
 
   const { data: items } = await supabase
     .from('content_items')
     .select(CONTENT_FIELDS)
     .eq('is_pinned', false);
   const candidates = dropStale(
-    (items ?? []).filter((item) => !AFFILIATE_SOURCES.has(item.source) && !usedIds.has(item.id))
+    (items ?? []).filter(
+      (item) => !AFFILIATE_SOURCES.has(item.source) && !usedIds.has(item.id) && taggedIds.has(item.id)
+    )
   );
   const sorted = sortForSelection(candidates);
   return sorted.slice(0, count);
