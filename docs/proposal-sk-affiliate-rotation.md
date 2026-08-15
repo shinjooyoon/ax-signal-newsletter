@@ -31,38 +31,57 @@
 | 일반 AI 트렌드 | SK텔레콤, SK브로드밴드 |
 | 금융 | 마땅한 계열사 없음 — 이 태그는 SK AX/외부뉴스로만 커버 |
 
-## RSS 조사 결과 (2026-08-15 기준)
+## 계열사 19곳 전수 조사 결과 (2026-08-15 기준)
 
-SK 계열사 19곳의 공식 홈페이지 RSS 태그 + 뉴스룸 서브도메인을 확인한 결과,
-**RSS로 자동 수집 가능한 곳은 3곳**:
+**RSS 자동 수집 3곳 + 수동 등록 가능 5곳 = 총 8곳 커버**, 나머지 6곳은 개별 기사에
+접근 가능한 고유 URL이 아예 없거나(SPA/JS 렌더링) 뉴스 섹션 자체가 없어서 등록 불가.
 
-| 계열사 | RSS | 확인한 URL |
+| 계열사 | 방식 | 비고 |
 |---|---|---|
-| SK하이닉스 | ✅ | `https://news.skhynix.co.kr/feed/` (한국어), `https://news.skhynix.com/en/feed/` (영어) |
-| SK텔레콤 | ✅ | `https://news.sktelecom.com/feed` |
-| SK이노베이션 · SK이노베이션 E&S | ✅ | `https://askinno.com/feed` — 공식 도메인(`skinnovation.com`, `skens.com`)에는 RSS가 없었지만, 두 회사가 공유하는 별도 뉴스룸 사이트 `askinno.com`(ASK Inno)에 RSS가 있음. 두 회사 기사가 섞여 있어서 `SK이노베이션·E&S`라는 하나의 source로 통합 등록 |
-| SK바이오팜 | ❌ (등록 불가) | `skbp.com` 보도자료 목록은 JS SPA라 기사를 클릭해도 URL이 안 바뀜(`list.do?boardCode=...` 고정). **개별 기사에 고유 URL 자체가 없어서 RSS든 수동 등록이든 링크를 걸 방법이 없음.** 나중에 사이트가 개편되면 재확인 필요 |
-| SK에코플랜트 | ❌ (뉴스룸은 있음, RSS 없음) | `news.skecoplant.com` |
-| SK주식회사, SK디스커버리, SK지오센트릭, SK아이이테크놀로지, SK네트웍스, SK브로드밴드, SK가스, SK엔무브, SKC, SK온, SK실트론, SK케미칼, SK스퀘어 | ❌ | 홈페이지에 RSS 태그 없음, 별도 뉴스룸 서브도메인도 없음 |
+| SK하이닉스 | RSS | `https://news.skhynix.co.kr/feed/` |
+| SK텔레콤 | RSS | `https://news.sktelecom.com/feed` — 발행 빈도 가장 높음(거의 매일) |
+| SK이노베이션 · SK이노베이션 E&S | RSS | `https://askinno.com/feed` — 공식 도메인(`skinnovation.com`, `skens.com`)엔 RSS가 없었지만 공유 뉴스룸(ASK Inno)에 있음. **SK지오센트릭·SK아이이테크놀로지도 같은 뉴스룸을 링크하고 있어 이 피드로 같이 커버됨** |
+| SK네트웍스 | 수동 등록 | `sknetworks.co.kr/pr/news-room` — 개별 기사 URL 있음, 2건 등록 |
+| SKC | 수동 등록 | `skc.co.kr` — JS `fnView()` 함수라 클릭만으론 안 되지만, GET 폼이라 `newsDetail.do?gubun=...&seq=...` 형태로 직접 링크 구성 가능. 2건 등록(AI 데이터센터 냉각액, MWC) |
+| SK에코플랜트 | 수동 등록 | `news.skecoplant.com` — 개별 URL 있음, AI DC 사업단 신설 등 2건 등록 |
+| SK주식회사(지주사) | 수동 등록 | `sk.co.kr/ko/media/news.jsp` — 목록은 `javascript:;`지만 클릭하면 실제로는 `news_view.jsp?idx=...`로 이동함(폼 제출 방식). 최태원 회장 AX 발언 등 2건 등록 |
+| SK케미칼(SK디스커버리 그룹) | 수동 등록 | `skdiscovery.com/kr/pr_list.aspx` — 서버 렌더링이라 가장 다루기 쉬움. 신약·소재 기사 2건 등록 |
+| SK바이오팜 | ❌ 등록 불가 | `skbp.com` 보도자료는 JS SPA라 기사를 클릭해도 URL이 안 바뀜(`list.do?boardCode=...` 고정) |
+| SK엔무브 | ❌ 등록 불가 | `skenmove.com` — SK바이오팜과 동일한 문제(클릭해도 URL 불변) |
+| SK스퀘어 | ❌ 등록 불가 | `sksquare.com/kor/news/newsMediaList.do` — 뉴스 목록 페이지는 있으나 개별 기사 링크를 찾지 못함 |
+| SK실트론 | ❌ 사실상 방치 | `sksiltron.com` PR 페이지 최신 글이 2024-05(2년 이상 전) — 운영 안 되는 것으로 판단, 제외 |
+| SK가스 | ❌ 뉴스 섹션 없음 | `skgas.co.kr` — 회사소개/사업소개/투자정보/ESG만 있고 언론/보도 메뉴 자체가 없음 |
+| SK브로드밴드 | ❌ 접속 불가 | `skbroadband.com` — 브라우저 접속이 계속 거부됨(자동화 차단 추정), 재시도 필요 |
+| SK디스커버리, SK가스, SK엔무브, SKC, SK온, SK실트론, SK케미칼, SK스퀘어 관련 나머지 | ❌ | 홈페이지에 RSS 태그 없음, 별도 뉴스룸 서브도메인도 없음 |
 
 ## 구현 완료 (이 브랜치 기준)
 
 - `ingest/config/sources.json`: SK하이닉스/SK텔레콤/SK이노베이션·E&S RSS 3개 추가, 활성화됨
-- `ingest/src/constants.js` 신규: `AFFILIATE_SOURCES` — 계열사로 취급할 `content_items.source` 목록.
-  별도 컬럼/스키마 변경 없이 `source` 필드만으로 "SK 소식"과 "외부뉴스"를 구분함
+- `ingest/src/constants.js`: `AFFILIATE_SOURCES` — 계열사로 취급할 `content_items.source` 목록
+  (RSS 3개 + 수동 등록 5개 = 8개). 별도 컬럼/스키마 변경 없이 `source` 필드만으로
+  "SK 소식"과 "외부뉴스"를 구분함
 - `ingest/src/buildIssue.js`: 외부뉴스 3→2, 계열사 소식 슬롯(1개) 신설.
-  계열사-태그 매핑은 정적 테이블이 아니라, **RSS 수집 시 Claude가 각 기사에 자동으로 붙이는 태그를
-  그대로 재사용** — 예: askinno.com 기사가 에너지 관련이면 자동으로 `ai-energy` 태그가 붙고,
-  "에너지" 구독자에게만 노출됨. 아래 매핑표는 참고용이지 코드에 하드코딩된 규칙은 아님
-- `ingest/src/addAffiliateContent.js` 신규: RSS 없는 계열사가 나중에 생기면 `addSkaxContent.js`와
-  같은 방식으로 수동 등록 가능 (지금은 실제로 쓸 대상이 없어서 미사용 상태)
+  계열사-태그 매핑은 정적 테이블이 아니라, **RSS/수동 등록 콘텐츠에 Claude가 자동으로 붙이는
+  태그를 그대로 재사용** — 예: SK케미칼 신약 기사는 자동으로 `ai-healthcare` 태그가 붙고,
+  "헬스케어" 구독자에게만 노출됨. 위 매핑표는 참고용이지 코드에 하드코딩된 규칙은 아님
+- `ingest/src/addAffiliateContent.js` 신규: RSS 없는 계열사 수동 등록용
+  (`addSkaxContent.js`와 동일 패턴). SK네트웍스/SKC/SK에코플랜트/SK주식회사/SK케미칼 등록에 사용
 - `ingest/src/emailTemplate.js`: 이메일을 "SK 소식"(AX+계열사) / "관심 분야 뉴스"(외부) 두 섹션으로
   시각적 분리, 기사 제목과 중복되는 요약 불릿(LLM 호출)은 제거
-- 실제 발송 테스트 완료 — SK AX 0 + 계열사 1(SK하이닉스) + 뉴스 2 구성으로 정상 수신 확인
+- `ingest/src/db.js`: 콘텐츠 선택 정렬을 "최신순"에서 "당일 뉴스 우선, 없으면 오래된 것부터(FIFO)"로
+  변경 — 최신순만 쓰면 계속 들어오는 새 콘텐츠에 밀려 예전에 모아둔 것들이 영영 안 나가는 문제가
+  있어서, 쌓인 콘텐츠를 순서대로 소진하도록 함. 30일 넘게 오래된 건 후보에서 제외
+- 실제 발송 테스트 다회 완료 — 계열사 슬롯에 SK하이닉스, SK이노베이션·E&S 등이 정상 노출되는 것 확인,
+  FIFO 정렬로 예전에 쌓여있던 콘텐츠(8/11, 7/30 등)가 실제로 선택되는 것도 확인
+
+콘텐츠 현황(2026-08-15 기준): 총 203개 — SK AX 23, 외부뉴스(AI타임스/전자신문/바이라인) 121,
+SK 계열사 8곳 59개(RSS 자동 49 + 수동 등록 10)
 
 ## 팀원 논의 필요 사항
 
 1. 이 방향 자체에 동의하는지 (외부뉴스 비중을 줄이는 게 맞는지)
 2. 계열사-태그 매핑표가 적절한지 (특히 금융 태그는 마땅한 계열사가 없음)
-3. SK바이오팜처럼 개별 기사 URL이 없는 계열사는 어떻게 할지 (일단 제외 상태)
-4. 이 브랜치를 main에 merge할지, 아니면 계속 별도로 둘지
+3. SK바이오팜/SK엔무브/SK스퀘어처럼 개별 기사 URL이 없는 계열사는 어떻게 할지 (일단 제외 상태)
+4. SKC/SK주식회사처럼 폼 제출 방식으로 URL을 알아낸 경우, 그 URL이 나중에 사이트 개편으로
+   깨질 수 있다는 점 — 링크 깨짐 모니터링이 필요할지
+5. 이 브랜치를 main에 merge할지, 아니면 계속 별도로 둘지
