@@ -8,10 +8,16 @@ import { summarizeDigest } from './tagger.js';
 // schema.sql 하단에 남겨둔 매칭 쿼리(구독 태그 + is_pinned 콘텐츠)를 실제로 구현한 것.
 //
 // 매칭되는 전체 콘텐츠를 다 보내면 뉴스레터가 너무 길어지므로, 한 회차당
-// 외부 뉴스 최신 MAX_EXTERNAL개 + SK AX 최신 MAX_PINNED개만 골라서 보낸다.
+// 외부 뉴스 최신 MAX_EXTERNAL개 + SK 계열사 최신 MAX_AFFILIATE개 + SK AX 최신 MAX_PINNED개만 골라서 보낸다.
 // 이번에 선택 안 된 나머지는 "이미 보낸 것"으로 기록하지 않으므로, 다음 회차에서
 // 여전히 최신 축에 들면 다시 후보로 올라올 수 있다.
-const MAX_EXTERNAL = 3;
+//
+// [미승인 제안] SK 계열사 소식을 별도 슬롯으로 분리 — RSS가 있는 곳부터(하이닉스/텔레콤).
+// docs/proposal-sk-affiliate-rotation.md 참고, 계열사-태그 매핑은 별도 테이블 없이
+// content_items.source가 이 목록에 있으면 "계열사"로, 아니면 "외부뉴스"로 취급한다.
+const AFFILIATE_SOURCES = new Set(['SK하이닉스', 'SK텔레콤']);
+const MAX_EXTERNAL = 2;
+const MAX_AFFILIATE = 1;
 const MAX_PINNED = 1;
 
 function parseArgs() {
@@ -81,8 +87,13 @@ async function main() {
 
     // matched는 is_pinned desc, 날짜 desc로 정렬돼 있으므로 앞쪽이 pinned(SK AX) 그룹
     const pinned = matched.filter((item) => item.is_pinned).slice(0, MAX_PINNED);
-    const external = matched.filter((item) => !item.is_pinned).slice(0, MAX_EXTERNAL);
-    const selected = [...pinned, ...external];
+    const affiliate = matched
+      .filter((item) => !item.is_pinned && AFFILIATE_SOURCES.has(item.source))
+      .slice(0, MAX_AFFILIATE);
+    const external = matched
+      .filter((item) => !item.is_pinned && !AFFILIATE_SOURCES.has(item.source))
+      .slice(0, MAX_EXTERNAL);
+    const selected = [...pinned, ...affiliate, ...external];
 
     if (selected.length === 0) {
       console.log(`  [새 콘텐츠 없음-스킵] ${subscriber.email}`);
@@ -119,7 +130,7 @@ async function main() {
       console.error(`  [발송 이력 기록 실패] ${subscriber.email}: ${sentContentError.message}`);
     }
 
-    console.log(`  [매칭 완료] ${subscriber.email} — 선택 ${selected.length}개(SK AX ${pinned.length} + 뉴스 ${external.length}) / 매칭 후보 ${matched.length}개, 불릿 ${bullets.length}개`);
+    console.log(`  [매칭 완료] ${subscriber.email} — 선택 ${selected.length}개(SK AX ${pinned.length} + 계열사 ${affiliate.length} + 뉴스 ${external.length}) / 매칭 후보 ${matched.length}개, 불릿 ${bullets.length}개`);
     bullets.forEach((b) => console.log(`    - ${b}`));
   }
 }

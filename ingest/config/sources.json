@@ -17,6 +17,16 @@
       "enabled": true
     },
     {
+      "name": "SK하이닉스",
+      "url": "https://news.skhynix.co.kr/feed/",
+      "enabled": true
+    },
+    {
+      "name": "SK텔레콤",
+      "url": "https://news.sktelecom.com/feed",
+      "enabled": true
+    },
+    {
       "name": "디지털투데이 (제외 — 증권 공시 뉴스 위주, AI/IT 관련성 낮음)",
       "url": "https://www.digitaltoday.co.kr/rss/allArticle.xml",
       "enabled": false
