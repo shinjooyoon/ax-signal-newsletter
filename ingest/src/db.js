@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { AFFILIATE_SOURCES } from './constants.js';
 
 export function getSupabase() {
   const url = process.env.SUPABASE_URL;
@@ -25,17 +26,6 @@ export async function getLeafTags(supabase) {
   return data;
 }
 
-/**
- * 구독자에게 이미 보낸 콘텐츠 id 목록 (subscriber_sent_content 기준).
- */
-export async function getSentContentIds(supabase, subscriberId) {
-  const { data } = await supabase
-    .from('subscriber_sent_content')
-    .select('content_item_id')
-    .eq('subscriber_id', subscriberId);
-  return new Set((data ?? []).map((r) => r.content_item_id));
-}
-
 const STALE_CUTOFF_DAYS = 30; // 이보다 오래된 건 후보에서 아예 제외
 
 function effectiveDate(item) {
@@ -60,48 +50,66 @@ function sortForSelection(items) {
   });
 }
 
-/**
- * 구독자의 관심 태그와 매칭되는 콘텐츠 + is_pinned(SK AX 자사) 콘텐츠를 합쳐서 반환한다.
- * schema.sql 하단의 매칭 쿼리 참고. excludeSent가 true(기본)면 이미 보낸 콘텐츠는 제외한다
- * (한번 보낸 콘텐츠는 평생 다시 안 보냄 — SK AX처럼 is_pinned=true인 콘텐츠가 반복 노출되는 걸 막기 위함).
- * STALE_CUTOFF_DAYS보다 오래된 건 아예 후보에서 뺀다 ("너무 오래된 거 아니면" 조건).
- */
-export async function getMatchedContent(supabase, subscriberId, { excludeSent = true } = {}) {
-  const { data: subscriberTags } = await supabase
-    .from('subscriber_tags')
-    .select('tag_id')
-    .eq('subscriber_id', subscriberId);
-  const tagIds = (subscriberTags ?? []).map((t) => t.tag_id);
-
-  const matchedIds = new Set();
-
-  if (tagIds.length > 0) {
-    const { data: contentTags } = await supabase
-      .from('content_tags')
-      .select('content_item_id')
-      .in('tag_id', tagIds);
-    (contentTags ?? []).forEach((ct) => matchedIds.add(ct.content_item_id));
-  }
-
-  const { data: pinned } = await supabase.from('content_items').select('id').eq('is_pinned', true);
-  (pinned ?? []).forEach((p) => matchedIds.add(p.id));
-
-  if (excludeSent) {
-    const sentIds = await getSentContentIds(supabase, subscriberId);
-    sentIds.forEach((id) => matchedIds.delete(id));
-  }
-
-  if (matchedIds.size === 0) return [];
-
-  const { data: items } = await supabase
-    .from('content_items')
-    .select('id, title, url, summary, source, is_pinned, published_at, created_at')
-    .in('id', Array.from(matchedIds));
-
+function dropStale(items) {
   const cutoff = Date.now() - STALE_CUTOFF_DAYS * 24 * 60 * 60 * 1000;
-  const fresh = (items ?? []).filter((item) => new Date(effectiveDate(item)).getTime() >= cutoff);
+  return items.filter((item) => new Date(effectiveDate(item)).getTime() >= cutoff);
+}
 
-  return sortForSelection(fresh);
+const CONTENT_FIELDS = 'id, title, url, summary, source, is_pinned, published_at, created_at';
+
+/**
+ * 같은 태그를 고른 구독자는 전부 같은 콘텐츠를 받도록, "다음에 뭘 보낼지"를
+ * 구독자 단위가 아니라 전역(SK AX) / 태그 단위로 공유해서 결정한다.
+ * pinned_content_history / tag_content_history에 이미 쓴 콘텐츠를 기록해두고,
+ * 다음 호출부턴 자동으로 제외된다 (언제 가입했든 같은 태그면 같은 진행상황을 봄).
+ */
+
+/** SK AX(is_pinned) 콘텐츠 중 아직 아무한테도 안 보낸 다음 1개를 고른다. */
+export async function getPinnedPick(supabase) {
+  const { data: pinned } = await supabase.from('content_items').select(CONTENT_FIELDS).eq('is_pinned', true);
+  const { data: usedRows } = await supabase.from('pinned_content_history').select('content_item_id');
+  const usedIds = new Set((usedRows ?? []).map((r) => r.content_item_id));
+
+  const candidates = dropStale((pinned ?? []).filter((item) => !usedIds.has(item.id)));
+  const sorted = sortForSelection(candidates);
+  return sorted[0] ?? null;
+}
+
+/**
+ * 특정 태그에 매칭되는 콘텐츠 중, 이 태그로는 아직 아무한테도 안 보낸 것들을
+ * 계열사(affiliate) / 외부뉴스(external)로 나눠서 각각 최대 1개씩 고른다.
+ */
+export async function getTagPicks(supabase, tagId) {
+  const { data: contentTags } = await supabase.from('content_tags').select('content_item_id').eq('tag_id', tagId);
+  const ids = (contentTags ?? []).map((r) => r.content_item_id);
+  if (ids.length === 0) return { affiliate: [], external: [] };
+
+  const { data: usedRows } = await supabase
+    .from('tag_content_history')
+    .select('content_item_id')
+    .eq('tag_id', tagId);
+  const usedIds = new Set((usedRows ?? []).map((r) => r.content_item_id));
+
+  const { data: items } = await supabase.from('content_items').select(CONTENT_FIELDS).in('id', ids);
+  // is_pinned(SK AX)은 getPinnedPick이 전역으로 따로 처리하므로 태그 픽에서는 제외(중복 방지)
+  const candidates = dropStale((items ?? []).filter((item) => !item.is_pinned && !usedIds.has(item.id)));
+  const sorted = sortForSelection(candidates);
+
+  return {
+    affiliate: sorted.filter((item) => AFFILIATE_SOURCES.has(item.source)).slice(0, 1),
+    external: sorted.filter((item) => !AFFILIATE_SOURCES.has(item.source)).slice(0, 1)
+  };
+}
+
+/** pinned_content_history / tag_content_history에 사용 기록을 남긴다. */
+export async function markPinnedUsed(supabase, contentItemId) {
+  await supabase.from('pinned_content_history').insert({ content_item_id: contentItemId });
+}
+
+export async function markTagUsed(supabase, tagId, contentItemIds) {
+  if (contentItemIds.length === 0) return;
+  const rows = contentItemIds.map((contentItemId) => ({ tag_id: tagId, content_item_id: contentItemId }));
+  await supabase.from('tag_content_history').insert(rows);
 }
 
 /**
