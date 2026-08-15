@@ -36,10 +36,35 @@ export async function getSentContentIds(supabase, subscriberId) {
   return new Set((data ?? []).map((r) => r.content_item_id));
 }
 
+const STALE_CUTOFF_DAYS = 30; // 이보다 오래된 건 후보에서 아예 제외
+
+function effectiveDate(item) {
+  return item.published_at ?? item.created_at;
+}
+
+/**
+ * 당일 뉴스가 있으면 그걸 우선, 없으면 FIFO(오래된 것부터)로 선택되도록 정렬한다.
+ * "최신순"으로만 하면 새 뉴스가 계속 들어올 때마다 예전에 모아둔 콘텐츠가 뒤로 밀려서
+ * 영영 안 나가는 문제가 있어서, 당일 것 소진하고 나면 쌓인 콘텐츠를 순서대로 활용한다.
+ */
+function sortForSelection(items) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  return items.sort((a, b) => {
+    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+    const aDate = effectiveDate(a);
+    const bDate = effectiveDate(b);
+    const aIsToday = aDate?.slice(0, 10) === todayStr;
+    const bIsToday = bDate?.slice(0, 10) === todayStr;
+    if (aIsToday !== bIsToday) return aIsToday ? -1 : 1;
+    return new Date(aDate) - new Date(bDate); // 오래된 것부터(FIFO)
+  });
+}
+
 /**
  * 구독자의 관심 태그와 매칭되는 콘텐츠 + is_pinned(SK AX 자사) 콘텐츠를 합쳐서 반환한다.
  * schema.sql 하단의 매칭 쿼리 참고. excludeSent가 true(기본)면 이미 보낸 콘텐츠는 제외한다
- * (SK AX처럼 is_pinned=true인 콘텐츠가 발송할 때마다 반복 노출되는 걸 막기 위함).
+ * (한번 보낸 콘텐츠는 평생 다시 안 보냄 — SK AX처럼 is_pinned=true인 콘텐츠가 반복 노출되는 걸 막기 위함).
+ * STALE_CUTOFF_DAYS보다 오래된 건 아예 후보에서 뺀다 ("너무 오래된 거 아니면" 조건).
  */
 export async function getMatchedContent(supabase, subscriberId, { excludeSent = true } = {}) {
   const { data: subscriberTags } = await supabase
@@ -73,12 +98,10 @@ export async function getMatchedContent(supabase, subscriberId, { excludeSent = 
     .select('id, title, url, summary, source, is_pinned, published_at, created_at')
     .in('id', Array.from(matchedIds));
 
-  return (items ?? []).sort((a, b) => {
-    if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
-    const aDate = a.published_at ?? a.created_at;
-    const bDate = b.published_at ?? b.created_at;
-    return new Date(bDate) - new Date(aDate);
-  });
+  const cutoff = Date.now() - STALE_CUTOFF_DAYS * 24 * 60 * 60 * 1000;
+  const fresh = (items ?? []).filter((item) => new Date(effectiveDate(item)).getTime() >= cutoff);
+
+  return sortForSelection(fresh);
 }
 
 /**
