@@ -76,13 +76,15 @@ export async function getPinnedPick(supabase) {
 }
 
 /**
- * 특정 태그에 매칭되는 콘텐츠 중, 이 태그로는 아직 아무한테도 안 보낸 것들을
- * 계열사(affiliate) 최대 1개 / 외부뉴스(external) 최대 2개로 나눠서 고른다.
+ * 특정 태그에 매칭되는 SK 계열사(affiliate) 콘텐츠 중, 이 태그로는 아직 아무한테도
+ * 안 보낸 것 최대 1개를 고른다. 외부뉴스는 더 이상 태그 매칭 안 함(getExternalNewsPicks 참고) —
+ * 화학/반도체/헬스케어처럼 원래 풀이 작은 태그가 외부뉴스까지 태그로 나누면 너무 빨리
+ * 소진돼서, 외부뉴스는 태그 무관 공유 풀로 뺐다.
  */
 export async function getTagPicks(supabase, tagId) {
   const { data: contentTags } = await supabase.from('content_tags').select('content_item_id').eq('tag_id', tagId);
   const ids = (contentTags ?? []).map((r) => r.content_item_id);
-  if (ids.length === 0) return { affiliate: [], external: [] };
+  if (ids.length === 0) return { affiliate: [] };
 
   const { data: usedRows } = await supabase
     .from('tag_content_history')
@@ -92,16 +94,34 @@ export async function getTagPicks(supabase, tagId) {
 
   const { data: items } = await supabase.from('content_items').select(CONTENT_FIELDS).in('id', ids);
   // is_pinned(SK AX)은 getPinnedPick이 전역으로 따로 처리하므로 태그 픽에서는 제외(중복 방지)
-  const candidates = dropStale((items ?? []).filter((item) => !item.is_pinned && !usedIds.has(item.id)));
+  const candidates = dropStale(
+    (items ?? []).filter((item) => !item.is_pinned && AFFILIATE_SOURCES.has(item.source) && !usedIds.has(item.id))
+  );
   const sorted = sortForSelection(candidates);
 
-  return {
-    affiliate: sorted.filter((item) => AFFILIATE_SOURCES.has(item.source)).slice(0, 1),
-    external: sorted.filter((item) => !AFFILIATE_SOURCES.has(item.source)).slice(0, 2)
-  };
+  return { affiliate: sorted.slice(0, 1) };
 }
 
-/** pinned_content_history / tag_content_history에 사용 기록을 남긴다. */
+/**
+ * 외부뉴스("뉴스" 섹션)는 태그 매칭 없이 전체 구독자가 공유하는 큐에서 다음 것 2개를 고른다
+ * (SK AX와 같은 방식). is_pinned도 아니고 SK 계열사도 아닌 콘텐츠 전체가 후보.
+ */
+export async function getExternalNewsPicks(supabase, count = 2) {
+  const { data: usedRows } = await supabase.from('external_news_history').select('content_item_id');
+  const usedIds = new Set((usedRows ?? []).map((r) => r.content_item_id));
+
+  const { data: items } = await supabase
+    .from('content_items')
+    .select(CONTENT_FIELDS)
+    .eq('is_pinned', false);
+  const candidates = dropStale(
+    (items ?? []).filter((item) => !AFFILIATE_SOURCES.has(item.source) && !usedIds.has(item.id))
+  );
+  const sorted = sortForSelection(candidates);
+  return sorted.slice(0, count);
+}
+
+/** pinned_content_history / tag_content_history / external_news_history에 사용 기록을 남긴다. */
 export async function markPinnedUsed(supabase, contentItemId) {
   await supabase.from('pinned_content_history').insert({ content_item_id: contentItemId });
 }
@@ -110,6 +130,11 @@ export async function markTagUsed(supabase, tagId, contentItemIds) {
   if (contentItemIds.length === 0) return;
   const rows = contentItemIds.map((contentItemId) => ({ tag_id: tagId, content_item_id: contentItemId }));
   await supabase.from('tag_content_history').insert(rows);
+}
+
+export async function markExternalNewsUsed(supabase, contentItemIds) {
+  if (contentItemIds.length === 0) return;
+  await supabase.from('external_news_history').insert(contentItemIds.map((contentItemId) => ({ content_item_id: contentItemId })));
 }
 
 /**

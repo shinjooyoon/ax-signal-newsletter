@@ -57,10 +57,11 @@ export function buildDigestHtml({ subscriberName, issueDate, items, weatherBlurb
   const skItems = items.filter((item) => item.is_pinned || AFFILIATE_SOURCES.has(item.source));
   const externalItems = items.filter((item) => !item.is_pinned && !AFFILIATE_SOURCES.has(item.source));
 
-  // 구독자가 고른 태그인데 오늘은 새 소식이 없었던 것들을 명시적으로 알려준다 (조용히 빠지지 않게)
+  // 구독자가 고른 태그인데 오늘은 SK 계열사 소식이 없었던 것들을 명시적으로 알려준다 (조용히 빠지지 않게)
+  // 뉴스 섹션은 태그 무관 공유 큐라 여기 해당 안 됨 — 계열사(SK 소식)에 한정된 안내.
   const emptyTagHtml =
     emptyTagNames.length > 0
-      ? `<div style="color:#999;font-size:13px;margin:8px 0 20px;">오늘은 ${emptyTagNames.map(escapeHtml).join(', ')} 관련 새 소식이 없어요.</div>`
+      ? `<div style="color:#999;font-size:13px;margin:8px 0 20px;">오늘은 ${emptyTagNames.map(escapeHtml).join(', ')} 관련 SK 계열사 소식이 없어요.</div>`
       : '';
 
   return `
@@ -71,7 +72,7 @@ export function buildDigestHtml({ subscriberName, issueDate, items, weatherBlurb
     ${weatherHtml}
 
     ${renderSection('SK 소식', skItems, '#c81e2c')}
-    ${renderSection('관심 분야 뉴스', externalItems, '#1d4ed8')}
+    ${renderSection('뉴스', externalItems, '#1d4ed8')}
     ${emptyTagHtml}
 
     <div style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;color:#999;font-size:12px;">

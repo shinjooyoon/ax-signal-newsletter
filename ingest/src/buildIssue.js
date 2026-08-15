@@ -1,6 +1,14 @@
 import 'dotenv/config';
 import crypto from 'node:crypto';
-import { getSupabase, getPinnedPick, getTagPicks, markPinnedUsed, markTagUsed } from './db.js';
+import {
+  getSupabase,
+  getPinnedPick,
+  getTagPicks,
+  getExternalNewsPicks,
+  markPinnedUsed,
+  markTagUsed,
+  markExternalNewsUsed
+} from './db.js';
 
 // 특정 발송 회차(issue)에 대해 콘텐츠를 골라 sends 테이블에 저장한다.
 //
@@ -105,7 +113,17 @@ async function main() {
     console.log('[SK AX 공유 픽] 새 콘텐츠 없음');
   }
 
-  // 이번에 발송 대상인 구독자들이 고른 태그만 모아서, 태그별로 한 번씩만 뽑는다
+  // 외부뉴스도 태그 무관하게 전체 공유 — 이번 회차에 한 번만 2개 뽑는다
+  const externalNewsPicks = await getExternalNewsPicks(supabase, 2);
+  if (externalNewsPicks.length > 0) {
+    await markExternalNewsUsed(
+      supabase,
+      externalNewsPicks.map((item) => item.id)
+    );
+  }
+  console.log(`[뉴스 공유 픽] ${externalNewsPicks.length}개`);
+
+  // 이번에 발송 대상인 구독자들이 고른 태그만 모아서, 태그별로 SK 계열사 픽을 한 번씩만 뽑는다
   const { data: allSubTags } = await supabase
     .from('subscriber_tags')
     .select('tag_id')
@@ -119,13 +137,12 @@ async function main() {
   for (const tagId of uniqueTagIds) {
     const picks = await getTagPicks(supabase, tagId);
     tagPicksById.set(tagId, picks);
-    const combined = [...picks.affiliate, ...picks.external];
     await markTagUsed(
       supabase,
       tagId,
-      combined.map((item) => item.id)
+      picks.affiliate.map((item) => item.id)
     );
-    console.log(`[태그 공유 픽] ${tagId} — 계열사 ${picks.affiliate.length}, 뉴스 ${picks.external.length}`);
+    console.log(`[태그 공유 픽] ${tagId} — 계열사 ${picks.affiliate.length}`);
   }
 
   // 구독자별로 sends 생성 — 같은 태그를 고른 사람은 전부 같은 콘텐츠를 받는다
@@ -134,15 +151,21 @@ async function main() {
     const tagIds = (subTags ?? []).map((t) => t.tag_id);
 
     const selected = [];
-    const tagByItemId = new Map(); // item.id -> 이 아이템을 고르게 한 tag_id (SK AX는 null)
+    const tagByItemId = new Map(); // item.id -> 이 아이템을 고르게 한 tag_id (SK AX/외부뉴스는 null)
     if (pinnedPick) {
       selected.push(pinnedPick);
       tagByItemId.set(pinnedPick.id, null);
     }
+    for (const item of externalNewsPicks) {
+      if (!tagByItemId.has(item.id)) {
+        selected.push(item);
+        tagByItemId.set(item.id, null);
+      }
+    }
     for (const tagId of tagIds) {
       const picks = tagPicksById.get(tagId);
       if (!picks) continue;
-      for (const item of [...picks.affiliate, ...picks.external]) {
+      for (const item of picks.affiliate) {
         if (!tagByItemId.has(item.id)) {
           selected.push(item);
           tagByItemId.set(item.id, tagId);
