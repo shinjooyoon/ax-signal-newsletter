@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Resend } from 'resend';
-import { getSupabase, getContentForSend } from './db.js';
+import { getSupabase, getContentForSend, getEmptyTagNames } from './db.js';
 import { buildDigestHtml } from './emailTemplate.js';
 import { getWeatherBlurb } from './weather.js';
 
@@ -61,12 +61,15 @@ async function main() {
     const subscriber = send.subscribers;
     // buildIssue.js가 이 send에 실제로 매칭해 넣었던 콘텐츠 그대로 재사용 (재계산하지 않음)
     const matched = await getContentForSend(supabase, send.id);
+    // 구독자가 고른 태그인데 오늘은 새 콘텐츠가 하나도 없었던 것들 — 이메일에 "없다"고 명시
+    const emptyTagNames = await getEmptyTagNames(supabase, send.subscriber_id, send.id);
 
     const html = buildDigestHtml({
       subscriberName: subscriber.name,
       issueDate: issue.issue_date,
       items: matched.slice(0, 8),
-      weatherBlurb
+      weatherBlurb,
+      emptyTagNames
     });
 
     try {

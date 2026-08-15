@@ -45,9 +45,9 @@ function renderSection(title, items, titleColor) {
 /**
  * 개인화 다이제스트 이메일 HTML을 만든다. 이메일 클라이언트 호환을 위해 인라인 스타일만 사용.
  * SK 관련(AX 고정 + 계열사)과 관심 분야 외부뉴스를 시각적으로 구분된 두 섹션으로 나눈다.
- * @param {{ subscriberName?: string, issueDate: string, items: Array<{title:string,url:string,source?:string,is_pinned?:boolean}>, weatherBlurb?: string|null }} params
+ * @param {{ subscriberName?: string, issueDate: string, items: Array<{title:string,url:string,source?:string,is_pinned?:boolean}>, weatherBlurb?: string|null, emptyTagNames?: string[] }} params
  */
-export function buildDigestHtml({ subscriberName, issueDate, items, weatherBlurb }) {
+export function buildDigestHtml({ subscriberName, issueDate, items, weatherBlurb, emptyTagNames = [] }) {
   const greeting = subscriberName ? `${escapeHtml(subscriberName)}님,` : '안녕하세요,';
 
   const weatherHtml = weatherBlurb
@@ -56,6 +56,12 @@ export function buildDigestHtml({ subscriberName, issueDate, items, weatherBlurb
 
   const skItems = items.filter((item) => item.is_pinned || AFFILIATE_SOURCES.has(item.source));
   const externalItems = items.filter((item) => !item.is_pinned && !AFFILIATE_SOURCES.has(item.source));
+
+  // 구독자가 고른 태그인데 오늘은 새 소식이 없었던 것들을 명시적으로 알려준다 (조용히 빠지지 않게)
+  const emptyTagHtml =
+    emptyTagNames.length > 0
+      ? `<div style="color:#999;font-size:13px;margin:8px 0 20px;">오늘은 ${emptyTagNames.map(escapeHtml).join(', ')} 관련 새 소식이 없어요.</div>`
+      : '';
 
   return `
   <div style="max-width:560px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111;">
@@ -66,6 +72,7 @@ export function buildDigestHtml({ subscriberName, issueDate, items, weatherBlurb
 
     ${renderSection('SK 소식', skItems, '#c81e2c')}
     ${renderSection('관심 분야 뉴스', externalItems, '#1d4ed8')}
+    ${emptyTagHtml}
 
     <div style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;color:#999;font-size:12px;">
       AX Signal — 관심 산업 분야 기반 AI/AX 뉴스레터

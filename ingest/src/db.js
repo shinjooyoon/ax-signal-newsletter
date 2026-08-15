@@ -139,3 +139,18 @@ export async function getContentForSend(supabase, sendId) {
     return new Date(bDate) - new Date(aDate);
   });
 }
+
+/**
+ * 구독자가 고른 태그 중, 이번 send에 콘텐츠가 하나도 안 나온(오늘 소진된) 태그 이름 목록.
+ * "없으면 없다고" 표시하기 위해 씀 — 새 컬럼 없이 subscriber_tags와 subscriber_sent_content.tag_id만 비교.
+ */
+export async function getEmptyTagNames(supabase, subscriberId, sendId) {
+  const { data: subTags } = await supabase
+    .from('subscriber_tags')
+    .select('tag_id, tags(name)')
+    .eq('subscriber_id', subscriberId);
+  const { data: sentRows } = await supabase.from('subscriber_sent_content').select('tag_id').eq('send_id', sendId);
+  const coveredTagIds = new Set((sentRows ?? []).map((r) => r.tag_id).filter(Boolean));
+
+  return (subTags ?? []).filter((t) => !coveredTagIds.has(t.tag_id)).map((t) => t.tags?.name).filter(Boolean);
+}
