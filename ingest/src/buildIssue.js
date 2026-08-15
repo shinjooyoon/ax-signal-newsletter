@@ -15,9 +15,23 @@ function parseArgs() {
   const out = {};
   for (let i = 0; i < args.length; i += 2) {
     const key = (args[i] ?? '').replace(/^--/, '');
-    out[key] = args[i + 1];
+    // --force처럼 값 없는 플래그도 처리 (다음 토큰이 또 --로 시작하거나 없으면 값을 안 먹음)
+    if (args[i + 1] === undefined || args[i + 1].startsWith('--')) {
+      out[key] = true;
+      i -= 1;
+    } else {
+      out[key] = args[i + 1];
+    }
   }
   return out;
+}
+
+// 발송은 평일에만 한다 (토/일 제외). issueDate는 "YYYY-MM-DD" 문자열이라
+// new Date(issueDate)로 바로 파싱하면 타임존에 따라 날짜가 밀릴 수 있어서 직접 분해해서 만든다.
+function isWeekend(issueDate) {
+  const [y, m, d] = issueDate.split('-').map(Number);
+  const day = new Date(y, m - 1, d).getDay(); // 0=일, 6=토
+  return day === 0 || day === 6;
 }
 
 async function getOrCreateIssue(supabase, issueDate) {
@@ -40,6 +54,11 @@ async function getOrCreateIssue(supabase, issueDate) {
 async function main() {
   const args = parseArgs();
   const issueDate = args.date ?? new Date().toISOString().slice(0, 10);
+
+  if (isWeekend(issueDate) && !args.force) {
+    console.log(`${issueDate}은 주말이라 발송하지 않습니다 (--force로 강제 실행 가능).`);
+    return;
+  }
 
   const supabase = getSupabase();
   const issue = await getOrCreateIssue(supabase, issueDate);

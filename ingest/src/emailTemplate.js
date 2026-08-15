@@ -60,7 +60,7 @@ export function buildDigestHtml({ subscriberName, issueDate, items, weatherBlurb
   return `
   <div style="max-width:560px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111;">
     <div style="font-size:13px;color:#888;margin-bottom:4px;">AX Signal · ${escapeHtml(issueDate)}</div>
-    <h1 style="font-size:20px;margin:0 0 16px;">${greeting} 이번 주 AI/AX 소식이에요</h1>
+    <h1 style="font-size:20px;margin:0 0 16px;">${greeting} 오늘의 AI/AX 소식이에요</h1>
 
     ${weatherHtml}
 
