@@ -4,7 +4,7 @@ import { getSupabase, getContentForSend } from './db.js';
 import { buildDigestHtml } from './emailTemplate.js';
 import { getWeatherBlurb } from './weather.js';
 
-// 5단계(buildIssue.js)에서 만든 sends(summary_bullets)를 실제 이메일로 발송한다.
+// 5단계(buildIssue.js)에서 만든 sends를 실제 이메일로 발송한다.
 // 아직 발신 도메인 인증 전이면 RESEND_FROM_EMAIL을 onboarding@resend.dev로 두고
 // 계정 소유자 본인 이메일로만 테스트 발송하세요.
 
@@ -43,7 +43,7 @@ async function main() {
 
   const { data: sends, error: sendsError } = await supabase
     .from('sends')
-    .select('id, subscriber_id, summary_bullets, digest_token, subscribers(email, name)')
+    .select('id, subscriber_id, digest_token, subscribers(email, name)')
     .eq('issue_id', issue.id)
     .eq('channel', 'email')
     .is('sent_at', null);
@@ -65,7 +65,6 @@ async function main() {
     const html = buildDigestHtml({
       subscriberName: subscriber.name,
       issueDate: issue.issue_date,
-      bullets: send.summary_bullets ?? [],
       items: matched.slice(0, 8),
       weatherBlurb
     });

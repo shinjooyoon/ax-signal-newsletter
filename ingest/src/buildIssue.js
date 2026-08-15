@@ -1,10 +1,9 @@
 import 'dotenv/config';
 import crypto from 'node:crypto';
 import { getSupabase, getMatchedContent } from './db.js';
-import { summarizeDigest } from './tagger.js';
+import { AFFILIATE_SOURCES } from './constants.js';
 
-// 특정 발송 회차(issue)에 대해 구독자별 개인화 콘텐츠를 매칭하고,
-// 상단 요약 불릿을 생성해 sends 테이블에 저장한다.
+// 특정 발송 회차(issue)에 대해 구독자별 개인화 콘텐츠를 매칭해서 sends 테이블에 저장한다.
 // schema.sql 하단에 남겨둔 매칭 쿼리(구독 태그 + is_pinned 콘텐츠)를 실제로 구현한 것.
 //
 // 매칭되는 전체 콘텐츠를 다 보내면 뉴스레터가 너무 길어지므로, 한 회차당
@@ -13,9 +12,7 @@ import { summarizeDigest } from './tagger.js';
 // 여전히 최신 축에 들면 다시 후보로 올라올 수 있다.
 //
 // [미승인 제안] SK 계열사 소식을 별도 슬롯으로 분리 — RSS가 있는 곳부터(하이닉스/텔레콤).
-// docs/proposal-sk-affiliate-rotation.md 참고, 계열사-태그 매핑은 별도 테이블 없이
-// content_items.source가 이 목록에 있으면 "계열사"로, 아니면 "외부뉴스"로 취급한다.
-const AFFILIATE_SOURCES = new Set(['SK하이닉스', 'SK텔레콤']);
+// docs/proposal-sk-affiliate-rotation.md 참고.
 const MAX_EXTERNAL = 2;
 const MAX_AFFILIATE = 1;
 const MAX_PINNED = 1;
@@ -100,16 +97,13 @@ async function main() {
       continue;
     }
 
-    const bullets = await summarizeDigest(selected);
-
     const { data: send, error: sendError } = await supabase
       .from('sends')
       .insert({
         issue_id: issue.id,
         subscriber_id: subscriber.id,
         channel: 'email',
-        digest_token: crypto.randomUUID(),
-        summary_bullets: bullets
+        digest_token: crypto.randomUUID()
       })
       .select('id')
       .single();
@@ -130,8 +124,7 @@ async function main() {
       console.error(`  [발송 이력 기록 실패] ${subscriber.email}: ${sentContentError.message}`);
     }
 
-    console.log(`  [매칭 완료] ${subscriber.email} — 선택 ${selected.length}개(SK AX ${pinned.length} + 계열사 ${affiliate.length} + 뉴스 ${external.length}) / 매칭 후보 ${matched.length}개, 불릿 ${bullets.length}개`);
-    bullets.forEach((b) => console.log(`    - ${b}`));
+    console.log(`  [매칭 완료] ${subscriber.email} — 선택 ${selected.length}개(SK AX ${pinned.length} + 계열사 ${affiliate.length} + 뉴스 ${external.length}) / 매칭 후보 ${matched.length}개`);
   }
 }
 
