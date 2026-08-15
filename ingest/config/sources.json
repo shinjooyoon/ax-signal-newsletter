@@ -1,0 +1,30 @@
+{
+  "_comment": "여기에 자동 수집할 RSS 피드를 추가하세요. content_type은 항상 'external'로 들어갑니다. SK AX 자사 콘텐츠는 RSS 여부가 확인될 때까지 addSkaxContent.js로 수동 등록하세요.",
+  "rssFeeds": [
+    {
+      "name": "AI타임스",
+      "url": "https://www.aitimes.com/rss/allArticle.xml",
+      "enabled": true
+    },
+    {
+      "name": "전자신문 - AI",
+      "url": "http://rss.etnews.com/04046.xml",
+      "enabled": true
+    },
+    {
+      "name": "바이라인네트워크",
+      "url": "https://byline.network/feed/",
+      "enabled": true
+    },
+    {
+      "name": "디지털투데이 (제외 — 증권 공시 뉴스 위주, AI/IT 관련성 낮음)",
+      "url": "https://www.digitaltoday.co.kr/rss/allArticle.xml",
+      "enabled": false
+    },
+    {
+      "name": "예시 — TechCrunch AI",
+      "url": "https://techcrunch.com/category/artificial-intelligence/feed/",
+      "enabled": false
+    }
+  ]
+}

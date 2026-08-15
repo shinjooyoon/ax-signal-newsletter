@@ -1,0 +1,20 @@
+{
+  "name": "ax-signal-ingest",
+  "version": "0.1.0",
+  "description": "AX Signal — 콘텐츠 수집 + 자동 태깅 파이프라인 (3단계)",
+  "type": "module",
+  "scripts": {
+    "ingest:rss": "node src/ingestRss.js",
+    "ingest:rss:dry": "node src/ingestRss.js --dry-run",
+    "add:skax": "node src/addSkaxContent.js",
+    "build:issue": "node src/buildIssue.js",
+    "send:digest": "node src/sendDigest.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "resend": "^6.20.0",
+    "rss-parser": "^3.13.0"
+  }
+}
