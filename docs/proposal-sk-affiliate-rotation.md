@@ -1,6 +1,8 @@
 # 제안 (미승인): 다이제스트에 SK 계열사 소식 추가
 
-> 상태: **팀원(임채환) 미승인** — 논의 후 결정되면 main에 반영. 아직 코드 구현 안 됨, 조사 결과만 정리.
+> 상태: **팀원(임채환) 미승인** — 논의 후 결정되면 main에 반영. 코드는 이 브랜치
+> (`proposal/sk-affiliate-rotation`)에서 실제로 구현/테스트까지 마쳤고, 실제 발송 이메일로도 확인함.
+> 아직 main에는 안 올라감.
 
 ## 배경
 
@@ -32,37 +34,35 @@
 ## RSS 조사 결과 (2026-08-15 기준)
 
 SK 계열사 19곳의 공식 홈페이지 RSS 태그 + 뉴스룸 서브도메인을 확인한 결과,
-**RSS로 자동 수집 가능한 곳은 2곳뿐**:
+**RSS로 자동 수집 가능한 곳은 3곳**:
 
 | 계열사 | RSS | 확인한 URL |
 |---|---|---|
 | SK하이닉스 | ✅ | `https://news.skhynix.co.kr/feed/` (한국어), `https://news.skhynix.com/en/feed/` (영어) |
 | SK텔레콤 | ✅ | `https://news.sktelecom.com/feed` |
-| SK이노베이션 E&S (구 SK E&S) | ❌ | `skens.com` — 구식 CMS(`view.do?cate=...`), RSS/개별 기사 URL 구조 없음 |
-| SK이노베이션 | ❌ | `skinnovation.com` |
-| SK바이오팜 | ❌ | `skbp.com` |
+| SK이노베이션 · SK이노베이션 E&S | ✅ | `https://askinno.com/feed` — 공식 도메인(`skinnovation.com`, `skens.com`)에는 RSS가 없었지만, 두 회사가 공유하는 별도 뉴스룸 사이트 `askinno.com`(ASK Inno)에 RSS가 있음. 두 회사 기사가 섞여 있어서 `SK이노베이션·E&S`라는 하나의 source로 통합 등록 |
+| SK바이오팜 | ❌ (등록 불가) | `skbp.com` 보도자료 목록은 JS SPA라 기사를 클릭해도 URL이 안 바뀜(`list.do?boardCode=...` 고정). **개별 기사에 고유 URL 자체가 없어서 RSS든 수동 등록이든 링크를 걸 방법이 없음.** 나중에 사이트가 개편되면 재확인 필요 |
 | SK에코플랜트 | ❌ (뉴스룸은 있음, RSS 없음) | `news.skecoplant.com` |
 | SK주식회사, SK디스커버리, SK지오센트릭, SK아이이테크놀로지, SK네트웍스, SK브로드밴드, SK가스, SK엔무브, SKC, SK온, SK실트론, SK케미칼, SK스퀘어 | ❌ | 홈페이지에 RSS 태그 없음, 별도 뉴스룸 서브도메인도 없음 |
 
-## 이 조사가 의미하는 것
+## 구현 완료 (이 브랜치 기준)
 
-- 자동화가 되는 건 사실상 "반도체"(하이닉스)와 "일반 AI 트렌드/통신"(텔레콤) 두 분야뿐.
-- 나머지 7개 태그(에너지/화학/헬스케어/모빌리티/제조/리테일/금융)에 계열사 소식을 넣으려면
-  SK AX 때처럼(`ingest/src/addSkaxContent.js`) 계열사별 수동 등록 스크립트가 필요함.
-- 그래서 처음부터 8개 회사를 다 수동 등록하기보다, **하이닉스/텔레콤부터 자동 연결하고
-  나머지는 괜찮은 소식이 보일 때만 가볍게 수동 등록**하는 방식을 권장.
-
-## 구현 시 변경 필요한 파일 (아직 미착수)
-
-- `schema.sql` 또는 새 migration: `content_items`에 계열사 구분 필드 추가 검토 (`company` 컬럼 등)
-  또는 `source` 필드를 계열사명으로 활용하고 태그 매핑은 애플리케이션 레이어에서 처리
-- `ingest/config/sources.json`: 하이닉스/텔레콤 RSS 추가 (`content_type`을 `external`이 아닌
-  별도 값으로 구분할지 검토 — 지금 스키마는 `news/insight/case_study/external`만 있음)
-- `ingest/src/buildIssue.js`: 외부뉴스 3→2, 계열사 소식 1개 선택 로직 추가
-- (RSS 없는 계열사용) `ingest/src/addAffiliateContent.js` 신규 — `addSkaxContent.js` 구조 재사용
+- `ingest/config/sources.json`: SK하이닉스/SK텔레콤/SK이노베이션·E&S RSS 3개 추가, 활성화됨
+- `ingest/src/constants.js` 신규: `AFFILIATE_SOURCES` — 계열사로 취급할 `content_items.source` 목록.
+  별도 컬럼/스키마 변경 없이 `source` 필드만으로 "SK 소식"과 "외부뉴스"를 구분함
+- `ingest/src/buildIssue.js`: 외부뉴스 3→2, 계열사 소식 슬롯(1개) 신설.
+  계열사-태그 매핑은 정적 테이블이 아니라, **RSS 수집 시 Claude가 각 기사에 자동으로 붙이는 태그를
+  그대로 재사용** — 예: askinno.com 기사가 에너지 관련이면 자동으로 `ai-energy` 태그가 붙고,
+  "에너지" 구독자에게만 노출됨. 아래 매핑표는 참고용이지 코드에 하드코딩된 규칙은 아님
+- `ingest/src/addAffiliateContent.js` 신규: RSS 없는 계열사가 나중에 생기면 `addSkaxContent.js`와
+  같은 방식으로 수동 등록 가능 (지금은 실제로 쓸 대상이 없어서 미사용 상태)
+- `ingest/src/emailTemplate.js`: 이메일을 "SK 소식"(AX+계열사) / "관심 분야 뉴스"(외부) 두 섹션으로
+  시각적 분리, 기사 제목과 중복되는 요약 불릿(LLM 호출)은 제거
+- 실제 발송 테스트 완료 — SK AX 0 + 계열사 1(SK하이닉스) + 뉴스 2 구성으로 정상 수신 확인
 
 ## 팀원 논의 필요 사항
 
 1. 이 방향 자체에 동의하는지 (외부뉴스 비중을 줄이는 게 맞는지)
 2. 계열사-태그 매핑표가 적절한지 (특히 금융 태그는 마땅한 계열사가 없음)
-3. 하이닉스/텔레콤만 우선 자동화하고 나머지는 나중에 할지, 처음부터 다 수동 등록할지
+3. SK바이오팜처럼 개별 기사 URL이 없는 계열사는 어떻게 할지 (일단 제외 상태)
+4. 이 브랜치를 main에 merge할지, 아니면 계속 별도로 둘지
