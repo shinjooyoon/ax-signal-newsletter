@@ -77,7 +77,7 @@ export async function getPinnedPick(supabase) {
 
 /**
  * 특정 태그에 매칭되는 콘텐츠 중, 이 태그로는 아직 아무한테도 안 보낸 것들을
- * 계열사(affiliate) / 외부뉴스(external)로 나눠서 각각 최대 1개씩 고른다.
+ * 계열사(affiliate) 최대 1개 / 외부뉴스(external) 최대 2개로 나눠서 고른다.
  */
 export async function getTagPicks(supabase, tagId) {
   const { data: contentTags } = await supabase.from('content_tags').select('content_item_id').eq('tag_id', tagId);
@@ -97,7 +97,7 @@ export async function getTagPicks(supabase, tagId) {
 
   return {
     affiliate: sorted.filter((item) => AFFILIATE_SOURCES.has(item.source)).slice(0, 1),
-    external: sorted.filter((item) => !AFFILIATE_SOURCES.has(item.source)).slice(0, 1)
+    external: sorted.filter((item) => !AFFILIATE_SOURCES.has(item.source)).slice(0, 2)
   };
 }
 

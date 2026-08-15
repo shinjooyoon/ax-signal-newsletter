@@ -151,12 +151,16 @@ async function main() {
       continue;
     }
 
+    // upsert — 공유 큐가 예전(구독자별 추적 시절) 기록과 같은 콘텐츠를 다시 고를 수도 있어서,
+    // 이 send_id로 갱신되게 한다 (subscriber_sent_content는 이제 "이번에 뭘 보냈는지" 조회용).
     const sentContentRows = selected.map((item) => ({
       subscriber_id: subscriber.id,
       content_item_id: item.id,
       send_id: send.id
     }));
-    const { error: sentContentError } = await supabase.from('subscriber_sent_content').insert(sentContentRows);
+    const { error: sentContentError } = await supabase
+      .from('subscriber_sent_content')
+      .upsert(sentContentRows, { onConflict: 'subscriber_id,content_item_id' });
     if (sentContentError) {
       console.error(`  [발송 이력 기록 실패] ${subscriber.email}: ${sentContentError.message}`);
     }

@@ -24,10 +24,13 @@ function renderItem(item) {
     </tr>`;
 }
 
-function renderSection(title, items) {
+// 박스 없이, 진한 색 글씨 + 굵은 밑줄로만 섹션을 구분한다.
+function renderSection(title, items, titleColor) {
   if (items.length === 0) return '';
   return `
-    <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:0.02em;margin:24px 0 4px;">${escapeHtml(title)}</div>
+    <div style="font-size:14px;font-weight:800;color:${titleColor};letter-spacing:0.02em;margin:24px 0 8px;padding-bottom:6px;border-bottom:3px solid ${titleColor};">
+      ${escapeHtml(title)}
+    </div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       ${items.map(renderItem).join('')}
     </table>`;
@@ -55,8 +58,8 @@ export function buildDigestHtml({ subscriberName, issueDate, items, weatherBlurb
 
     ${weatherHtml}
 
-    ${renderSection('SK 소식', skItems)}
-    ${renderSection('관심 분야 뉴스', externalItems)}
+    ${renderSection('SK 소식', skItems, '#c81e2c')}
+    ${renderSection('관심 분야 뉴스', externalItems, '#1d4ed8')}
 
     <div style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;color:#999;font-size:12px;">
       AX Signal — 관심 산업 분야 기반 AI/AX 뉴스레터
