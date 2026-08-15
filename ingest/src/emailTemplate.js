@@ -10,14 +10,20 @@ function escapeHtml(str) {
   })[c]);
 }
 
+function renderBadge(text, color, bg) {
+  return `<span style="display:inline-block;font-size:11px;font-weight:600;color:${color};background:${bg};border-radius:4px;padding:2px 6px;margin-right:6px;">${escapeHtml(text)}</span>`;
+}
+
 function renderItem(item) {
-  const badge = item.is_pinned
-    ? '<span style="display:inline-block;font-size:11px;font-weight:600;color:#b45309;background:#fef3c7;border-radius:4px;padding:2px 6px;margin-right:6px;">SK AX</span>'
-    : '';
+  const badges = [
+    item.is_pinned ? renderBadge('SK AX', '#b45309', '#fef3c7') : '',
+    // 어떤 관심 분야(태그) 때문에 이 콘텐츠가 선택됐는지 SK AX 배지와 같은 스타일로 표시
+    item.tagName ? renderBadge(item.tagName, '#1e40af', '#dbeafe') : ''
+  ].join('');
   return `
     <tr>
       <td style="padding:12px 0;border-bottom:1px solid #eee;">
-        ${badge}
+        ${badges}
         <a href="${escapeHtml(item.url)}" style="color:#111;font-weight:600;text-decoration:none;font-size:15px;">${escapeHtml(item.title)}</a>
         ${item.source ? `<div style="color:#888;font-size:12px;margin-top:4px;">${escapeHtml(item.source)}</div>` : ''}
       </td>

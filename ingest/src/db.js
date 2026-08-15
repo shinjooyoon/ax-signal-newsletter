@@ -118,17 +118,21 @@ export async function markTagUsed(supabase, tagId, contentItemIds) {
 export async function getContentForSend(supabase, sendId) {
   const { data: rows } = await supabase
     .from('subscriber_sent_content')
-    .select('content_item_id')
+    .select('content_item_id, tag_id, tags(name)')
     .eq('send_id', sendId);
-  const ids = (rows ?? []).map((r) => r.content_item_id);
-  if (ids.length === 0) return [];
+  if (!rows || rows.length === 0) return [];
+
+  const tagNameByItemId = new Map(rows.map((r) => [r.content_item_id, r.tags?.name ?? null]));
+  const ids = rows.map((r) => r.content_item_id);
 
   const { data: items } = await supabase
     .from('content_items')
     .select('id, title, url, summary, source, is_pinned, published_at, created_at')
     .in('id', ids);
 
-  return (items ?? []).sort((a, b) => {
+  const withTagName = (items ?? []).map((item) => ({ ...item, tagName: tagNameByItemId.get(item.id) ?? null }));
+
+  return withTagName.sort((a, b) => {
     if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
     const aDate = a.published_at ?? a.created_at;
     const bDate = b.published_at ?? b.created_at;

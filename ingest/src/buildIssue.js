@@ -115,18 +115,18 @@ async function main() {
     const tagIds = (subTags ?? []).map((t) => t.tag_id);
 
     const selected = [];
-    const seen = new Set();
+    const tagByItemId = new Map(); // item.id -> 이 아이템을 고르게 한 tag_id (SK AX는 null)
     if (pinnedPick) {
       selected.push(pinnedPick);
-      seen.add(pinnedPick.id);
+      tagByItemId.set(pinnedPick.id, null);
     }
     for (const tagId of tagIds) {
       const picks = tagPicksById.get(tagId);
       if (!picks) continue;
       for (const item of [...picks.affiliate, ...picks.external]) {
-        if (!seen.has(item.id)) {
+        if (!tagByItemId.has(item.id)) {
           selected.push(item);
-          seen.add(item.id);
+          tagByItemId.set(item.id, tagId);
         }
       }
     }
@@ -156,7 +156,8 @@ async function main() {
     const sentContentRows = selected.map((item) => ({
       subscriber_id: subscriber.id,
       content_item_id: item.id,
-      send_id: send.id
+      send_id: send.id,
+      tag_id: tagByItemId.get(item.id) ?? null
     }));
     const { error: sentContentError } = await supabase
       .from('subscriber_sent_content')
