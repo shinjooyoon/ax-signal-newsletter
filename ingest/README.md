@@ -1,4 +1,4 @@
-# AX Signal — 콘텐츠 수집 + 자동 태깅 파이프라인 (3단계)
+# AX Signal — 콘텐츠 수집 + 태깅 + 매칭 + 발송 파이프라인
 
 ## 준비
 
@@ -9,7 +9,22 @@ cp .env.example .env   # 값 채워넣기
 
 - `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`: Supabase 프로젝트 Settings > API
 - `ANTHROPIC_API_KEY`: Claude API 키
-- 실행 전에 `schema.sql`이 이미 Supabase에 적용되어 있어야 함 (1~2단계 결과물)
+- `RESEND_API_KEY` / `RESEND_FROM_EMAIL`: 이메일 발송용 (6단계, resend.com). 발신 도메인
+  인증 전에는 `RESEND_FROM_EMAIL=onboarding@resend.dev`로 두면 계정 본인 이메일로만 테스트 가능
+
+### Supabase에 스키마 적용 (새 프로젝트라면 순서대로 전부 실행)
+
+SQL Editor에서 **이 순서 그대로** 실행:
+
+1. `../schema.sql` (1~2단계 — 태그 체계 + 기본 테이블)
+2. `migrations/002_subscriber_sent_content.sql` (중복 발송 방지)
+3. `migrations/003_shared_content_history.sql` (SK AX/태그별 공유 큐 — "같은 태그=같은 콘텐츠")
+4. `migrations/004_reduce_tags.sql` (태그 10개 → 5개로 축소, 데이터 삭제 포함)
+5. `migrations/005_tag_on_sent_content.sql` (이메일에 관심 분야 배지 표시용)
+6. `migrations/006_external_news_history.sql` (외부뉴스 전체 공유 풀)
+
+`002` 이후는 `proposal/sk-affiliate-rotation` 브랜치에서 작업 중인 미승인 변경사항이라,
+`main` 기준으로만 쓸 거면 `002`까지만 실행하면 됨.
 
 ## 1. 외부 RSS 소스 (자동 수집)
 
@@ -46,6 +61,49 @@ npm run add:skax -- \
 - RSS/sitemap이 나중에 확인되면 `ingestRss.js`와 동일한 구조로
   자동 수집 스크립트로 옮기면 된다 (지금 로직을 거의 그대로 재사용 가능).
 
+## 2b. SK 계열사 콘텐츠 (`proposal/sk-affiliate-rotation` 브랜치, 수동 등록)
+
+RSS 없는 계열사(SK네트웍스/SKC/SK에코플랜트/SK주식회사/SK케미칼 등)는 `add:skax`와
+똑같은 방식으로 등록한다. 회사별 실제 조사 결과는 `docs/proposal-sk-affiliate-rotation.md` 참고.
+
+```bash
+npm run add:affiliate -- \
+  --title "제목" \
+  --url "https://..." \
+  --source "SK네트웍스" \
+  --summary "간단 요약 (선택)"
+```
+
+`--source` 값이 `src/constants.js`의 `AFFILIATE_SOURCES`에 있어야 "SK 소식" 섹션으로 분류됨.
+
+## 3. 구독자 가입 (`web/` — Next.js)
+
+`web/`에 별도 Next.js 앱으로 가입 폼이 있다. `web/.env.local`에 같은 `SUPABASE_URL`/
+`SUPABASE_SERVICE_ROLE_KEY`를 넣고 `npm install && npm run dev`로 실행하면 `localhost:3000`에서
+이메일 + 관심 태그(체크박스)를 받아 `subscribers`/`subscriber_tags`에 저장한다.
+
+## 4. 발송 회차 매칭
+
+```bash
+npm run build:issue                    # 오늘 날짜 기준
+npm run build:issue -- --date 2026-08-20   # 특정 날짜 지정 (테스트용)
+npm run build:issue -- --force         # 주말이어도 강제 실행
+```
+
+활성 구독자별로 콘텐츠를 매칭해 `sends`에 저장한다. 기본적으로 토/일은 스킵됨(`--force`로 무시 가능).
+`proposal/sk-affiliate-rotation` 브랜치에서는 "같은 태그를 고른 구독자는 전부 같은 콘텐츠를 받는" 공유 큐
+구조로 되어 있음 — 자세한 내용은 `docs/proposal-sk-affiliate-rotation.md` 참고.
+
+## 5. 이메일 발송
+
+```bash
+npm run send:digest                    # 오늘 날짜 기준, build:issue로 만든 sends를 실제 발송
+npm run send:digest -- --date 2026-08-20
+```
+
+Resend로 실제 이메일을 보내고 `sends.sent_at`을 기록한다. 발신 도메인 인증 전엔
+`onboarding@resend.dev`로 계정 본인 이메일에만 발송 가능.
+
 ## 검증 방법
 
 - `npm run ingest:rss:dry`로 RSS 파싱이 되는지 먼저 확인 (네트워크/피드 URL 문제 조기 발견)
@@ -54,8 +112,8 @@ npm run add:skax -- \
 - `confidence`가 낮은(예: 0.6 미만) 태깅은 `content_tags.verified = false`
   상태로 남아있으니, 초반에는 사람이 한 번씩 훑어보는 걸 추천
 
-## 다음 단계
+## 남은 것
 
-여기서 만든 `content_items` + `content_tags`가 준비되면, 4단계(구독자 관심사
-수집)와 5단계(개인화 매칭 로직)로 이어진다. schema.sql 하단에 남겨둔
-매칭 쿼리 예시를 참고.
+- 발신 도메인 인증 (지금은 계정 본인 이메일로만 테스트 가능)
+- 정기 실행 자동화 (cron/GitHub Actions로 `ingest:rss` → `build:issue` → `send:digest` 스케줄링)
+- 구독 해지, 개인화 다이제스트 웹페이지(`sends.digest_token` 활용, 아직 미구현)
