@@ -28,6 +28,18 @@ export async function getLeafTags(supabase) {
 
 const STALE_CUTOFF_DAYS = 30; // 이보다 오래된 건 후보에서 아예 제외
 
+const kstDateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }); // en-CA = YYYY-MM-DD
+
+/**
+ * "오늘"을 한국시간(KST) 기준 YYYY-MM-DD로 반환한다. GitHub Actions 등 UTC로 도는
+ * 서버에서 new Date().toISOString()을 그대로 쓰면 한국 새벽/아침 시간대에 날짜가
+ * 하루 밀려서(예: 월요일 오전 7시 KST가 UTC로는 아직 일요일) 주말로 오인되는 등
+ * 버그가 생기므로, 날짜가 필요한 곳은 전부 이 함수를 통해서만 계산한다.
+ */
+export function todayKST() {
+  return kstDateFormatter.format(new Date());
+}
+
 function effectiveDate(item) {
   return item.published_at ?? item.created_at;
 }
@@ -38,7 +50,7 @@ function effectiveDate(item) {
  * 영영 안 나가는 문제가 있어서, 당일 것 소진하고 나면 쌓인 콘텐츠를 순서대로 활용한다.
  */
 function sortForSelection(items) {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayKST();
   return items.sort((a, b) => {
     if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
     const aDate = effectiveDate(a);

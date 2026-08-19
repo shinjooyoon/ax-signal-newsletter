@@ -7,7 +7,8 @@ import {
   getExternalNewsPicks,
   markPinnedUsed,
   markTagUsed,
-  markExternalNewsUsed
+  markExternalNewsUsed,
+  todayKST
 } from './db.js';
 
 // 특정 발송 회차(issue)에 대해 콘텐츠를 골라 sends 테이블에 저장한다.
@@ -61,7 +62,7 @@ async function getOrCreateIssue(supabase, issueDate) {
 
 async function main() {
   const args = parseArgs();
-  const issueDate = args.date ?? new Date().toISOString().slice(0, 10);
+  const issueDate = args.date ?? todayKST();
 
   if (isWeekend(issueDate) && !args.force) {
     console.log(`${issueDate}은 주말이라 발송하지 않습니다 (--force로 강제 실행 가능).`);

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Resend } from 'resend';
-import { getSupabase, getContentForSend, getEmptyTagNames } from './db.js';
+import { getSupabase, getContentForSend, getEmptyTagNames, todayKST } from './db.js';
 import { buildDigestHtml } from './emailTemplate.js';
 import { getWeatherBlurb } from './weather.js';
 
@@ -20,7 +20,7 @@ function parseArgs() {
 
 async function main() {
   const args = parseArgs();
-  const issueDate = args.date ?? new Date().toISOString().slice(0, 10);
+  const issueDate = args.date ?? todayKST();
 
   if (!process.env.RESEND_API_KEY) {
     throw new Error('RESEND_API_KEY 환경변수가 필요합니다. .env에 추가해주세요.');
