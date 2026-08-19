@@ -7,8 +7,11 @@
     "ingest:rss": "node src/ingestRss.js",
     "ingest:rss:dry": "node src/ingestRss.js --dry-run",
     "add:skax": "node src/addSkaxContent.js",
+    "add:affiliate": "node src/addAffiliateContent.js",
     "build:issue": "node src/buildIssue.js",
-    "send:digest": "node src/sendDigest.js"
+    "send:digest": "node src/sendDigest.js",
+    "status": "node src/status.js",
+    "reset:sends": "node src/resetSends.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
