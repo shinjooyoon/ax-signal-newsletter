@@ -1,0 +1,39 @@
+name: Daily digest
+
+on:
+  schedule:
+    # 매주 월~금 09:00 KST (UTC 00:00) — buildIssue.js 자체에도 주말 스킵 로직이 있지만
+    # 여기서도 평일만 돌게 해서 불필요한 실행 자체를 막는다.
+    - cron: '0 0 * * 1-5'
+  workflow_dispatch: {} # Actions 탭에서 수동으로도 실행 가능
+
+jobs:
+  run-digest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ingest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Collect RSS content
+        run: npm run ingest:rss
+
+      - name: Build today's issue
+        run: npm run build:issue
+
+      - name: Send digest emails
+        run: npm run send:digest
