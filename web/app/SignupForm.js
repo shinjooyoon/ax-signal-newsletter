@@ -5,6 +5,9 @@ import { subscribe } from './actions';
 
 const initialState = { status: 'idle', message: '' };
 
+// 계열사 소식이 아직 적은 분야는 미리 알려준다 (콘텐츠 쌓이면 여기서 지우면 됨)
+const LOW_CONTENT_TAGS = new Set(['바이오']);
+
 export default function SignupForm({ tags }) {
   const [state, formAction, pending] = useActionState(subscribe, initialState);
 
@@ -47,6 +50,9 @@ export default function SignupForm({ tags }) {
             >
               <input type="checkbox" name="tags" value={tag.id} className="accent-neutral-800" />
               {tag.name}
+              {LOW_CONTENT_TAGS.has(tag.name) && (
+                <span className="text-xs text-neutral-400">(소식 적음)</span>
+              )}
             </label>
           ))}
         </div>
