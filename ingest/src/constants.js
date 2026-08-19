@@ -11,5 +11,6 @@ export const AFFILIATE_SOURCES = new Set([
   'SKC',
   'SK에코플랜트',
   'SK주식회사',
-  'SK케미칼' // SK디스커버리 그룹
+  'SK케미칼', // SK디스커버리 그룹
+  'SK바이오사이언스'
 ]);
