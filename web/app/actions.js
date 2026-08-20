@@ -10,6 +10,9 @@ export async function subscribe(prevState, formData) {
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
     return { status: 'error', message: '올바른 이메일 주소를 입력해주세요.' };
   }
+  if (!name) {
+    return { status: 'error', message: '이름을 입력해주세요.' };
+  }
   if (tagIds.length === 0) {
     return { status: 'error', message: '관심 분야를 하나 이상 선택해주세요.' };
   }
@@ -28,7 +31,7 @@ export async function subscribe(prevState, formData) {
     subscriberId = existing.id;
     const { error: updateError } = await supabase
       .from('subscribers')
-      .update({ name: name || null, updated_at: new Date().toISOString() })
+      .update({ name, updated_at: new Date().toISOString() })
       .eq('id', subscriberId);
     if (updateError) {
       return { status: 'error', message: `저장 실패: ${updateError.message}` };
@@ -37,7 +40,7 @@ export async function subscribe(prevState, formData) {
   } else {
     const { data: inserted, error: insertError } = await supabase
       .from('subscribers')
-      .insert({ email, name: name || null })
+      .insert({ email, name })
       .select('id')
       .single();
     if (insertError) {

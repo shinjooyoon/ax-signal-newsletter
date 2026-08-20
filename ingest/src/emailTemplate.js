@@ -42,13 +42,35 @@ function renderSection(title, items, titleColor) {
     </table>`;
 }
 
+// 매 발송마다 랜덤으로 골라 쓰는 긍정적인 인사말 — {name}은 실제 이름으로 치환됨.
+// 이모지 포함 여부가 섞여 있어도 되도록 톤을 통일(과하지 않게, 응원/긍정 느낌)해뒀다.
+const GREETING_TEMPLATES = [
+  (name) => `${name}님, 좋은 아침이에요 ☀️`,
+  (name) => `${name}님, 오늘도 화이팅이에요 💪`,
+  (name) => `좋은 아침이에요, ${name}님 🌤️`,
+  (name) => `${name}님, 상쾌한 하루 시작해봐요`,
+  (name) => `${name}님, 오늘도 좋은 하루 보내세요`,
+  (name) => `${name}님, 활기찬 아침이에요 🙌`,
+  (name) => `${name}님, 오늘 하루도 응원할게요`,
+  (name) => `안녕하세요 ${name}님, 새로운 하루가 밝았어요`,
+  (name) => `${name}님, 커피 한 잔과 함께 시작해봐요 ☕`,
+  (name) => `${name}님, 오늘도 좋은 소식 가득하길 바라요`
+];
+
+function pickGreeting(subscriberName) {
+  const safeName = escapeHtml(subscriberName || '구독자');
+  const template = GREETING_TEMPLATES[Math.floor(Math.random() * GREETING_TEMPLATES.length)];
+  return template(safeName);
+}
+
 /**
  * 개인화 다이제스트 이메일 HTML을 만든다. 이메일 클라이언트 호환을 위해 인라인 스타일만 사용.
  * SK 관련(AX 고정 + 계열사)과 관심 분야 외부뉴스를 시각적으로 구분된 두 섹션으로 나눈다.
+ * 인사말은 매 발송마다 랜덤으로 골라 딱딱하지 않게 응원하는 톤으로 바뀐다.
  * @param {{ subscriberName?: string, issueDate: string, items: Array<{title:string,url:string,source?:string,is_pinned?:boolean}>, weatherBlurb?: string|null, emptyTagNames?: string[] }} params
  */
 export function buildDigestHtml({ subscriberName, issueDate, items, weatherBlurb, emptyTagNames = [] }) {
-  const greeting = subscriberName ? `${escapeHtml(subscriberName)}님,` : '안녕하세요,';
+  const greeting = pickGreeting(subscriberName);
 
   const weatherHtml = weatherBlurb
     ? `<div style="background:#f3f4f6;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:20px;">${escapeHtml(weatherBlurb)}</div>`
@@ -67,7 +89,8 @@ export function buildDigestHtml({ subscriberName, issueDate, items, weatherBlurb
   return `
   <div style="max-width:560px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111;">
     <div style="font-size:13px;color:#888;margin-bottom:4px;">AX Signal · ${escapeHtml(issueDate)}</div>
-    <h1 style="font-size:20px;margin:0 0 16px;">${greeting} 오늘의 AI/AX 소식이에요</h1>
+    <h1 style="font-size:20px;margin:0 0 4px;">${greeting}</h1>
+    <p style="font-size:14px;color:#666;margin:0 0 16px;">오늘의 AI/AX 소식을 모아왔어요</p>
 
     ${weatherHtml}
 
