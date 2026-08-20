@@ -50,7 +50,7 @@ export default function SignupForm({ tags }) {
       <fieldset>
         <div className="mb-2.5 flex items-baseline justify-between">
           <legend className="text-sm font-medium text-neutral-700">
-            관심 분야 <span className="text-accent">*</span>
+            관심 분야 (복수 선택 가능) <span className="text-accent">*</span>
           </legend>
           <span
             className={`text-xs transition-colors ${
