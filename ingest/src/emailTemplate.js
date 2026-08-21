@@ -65,7 +65,7 @@ function renderHero(item) {
           <tr><td class="hero-pad" style="padding:22px 24px 24px 24px;">
 
             <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-              <td style="font-family:${FONT}; font-size:11px; font-weight:800; color:#EA002C; letter-spacing:.14em;">오늘의 시그널</td>
+              <td style="font-family:${FONT}; font-size:11px; font-weight:800; letter-spacing:.14em;"><a href="${escapeHtml(item.url)}" style="color:#EA002C; text-decoration:none;">오늘의 시그널</a></td>
             </tr></table>
 
             ${
@@ -258,8 +258,8 @@ export function buildDigestHtml({
     .pad-x { padding-left:20px !important; padding-right:20px !important; }
     .hero-pad { padding-left:20px !important; padding-right:20px !important; }
     .h1 { font-size:22px !important; }
-    .hero-title { font-size:20px !important; }
-    .item-title { font-size:16px !important; }
+    .hero-title { font-size:18px !important; }
+    .item-title { font-size:15px !important; }
     /* 좁은 화면에서 히어로 요약/용어 뜻풀이처럼 여러 줄로 꺾이는 문단이 빽빽해 보이지 않게 줄간격을 넉넉히 */
     .t-body { line-height:1.9 !important; }
   }
@@ -279,7 +279,7 @@ export function buildDigestHtml({
 
   <tr><td style="padding:8px 4px 18px 4px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-      <td align="left" style="font-family:${FONT}; font-size:12px; font-weight:700; letter-spacing:.18em; color:#EA002C; white-space:nowrap;">&#9679;&nbsp; AX SIGNAL</td>
+      <td align="left" style="font-family:${FONT}; font-size:12px; font-weight:700; letter-spacing:.18em; white-space:nowrap;"><a href="${escapeHtml(baseUrl)}" style="color:#EA002C; text-decoration:none;">&#9679;&nbsp; AX SIGNAL</a></td>
       <td align="right" class="t-mute" style="font-family:${FONT}; font-size:12px; color:#8A90A0; white-space:nowrap;">${escapeHtml(headerDate)}${weather ? ` &nbsp;&#183;&nbsp; ${weather.icon} ${weather.tempMin}&#176;/${weather.tempMax}&#176;` : ''}</td>
     </tr></table>
   </td></tr>
