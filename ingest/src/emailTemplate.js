@@ -31,6 +31,14 @@ function displaySource(item) {
   return item.source ?? '';
 }
 
+// 압축 아이템 요약은 서버에서 강제로 60자 이내로 자른다 — AI가 프롬프트 지시를 안 지키고
+// 길게 쓸 때가 있는데, 여기서 두 줄로 넘어가면 히어로와의 위계 차이가 무너진다.
+function truncate(str, maxLen) {
+  const s = (str ?? '').trim();
+  if (s.length <= maxLen) return s;
+  return s.slice(0, maxLen).trimEnd() + '…';
+}
+
 function formatHeaderDate(issueDate) {
   const [y, m, d] = issueDate.split('-').map(Number);
   const weekday = WEEKDAYS_KR[new Date(y, m - 1, d).getDay()];
@@ -72,6 +80,12 @@ function renderHero(item) {
               ${escapeHtml(cleanTitle(item.title))}
             </a>
 
+            ${
+              item.summary
+                ? `<p class="t-body" style="margin:12px 0 0 0; font-family:${FONT}; font-size:14px; line-height:1.7; color:#5A6172;">${escapeHtml(item.summary)}</p>`
+                : ''
+            }
+
           </td></tr>
         </table>
       </td></tr>
@@ -90,6 +104,11 @@ function renderCompactItem(item, { labelColor, first }) {
       <a href="${escapeHtml(item.url)}" class="item-title t-ink" style="display:block; margin:5px 0 0 0; font-family:${FONT}; font-size:16px; line-height:1.45; font-weight:700; color:#16181D; letter-spacing:-.01em;">
         ${escapeHtml(cleanTitle(item.title))}
       </a>
+      ${
+        item.summary
+          ? `<p class="t-body" style="margin:5px 0 0 0; font-family:${FONT}; font-size:13px; line-height:1.6; color:#6A7181;">${escapeHtml(truncate(item.summary, 60))}</p>`
+          : ''
+      }
     </td></tr>`;
 }
 
@@ -108,13 +127,49 @@ function renderCompactSection(title, items, { titleColor, labelColor }) {
     </table>`;
 }
 
+// 오늘 실린 콘텐츠에서 뽑은 용어 하나 + 뜻풀이. 마땅한 용어가 없는 날은 term이 null이라
+// 섹션 자체가 안 보인다(빈 제목줄만 남기지 않기).
+function renderTermOfDay(term) {
+  if (!term) return '';
+  const sourceLink = term.sourceUrl
+    ? `<a href="${escapeHtml(term.sourceUrl)}" class="t-mute" style="color:#9AA1B0; text-decoration:underline;">${escapeHtml(term.sourceTitle ?? '')}</a>`
+    : '';
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr><td class="pad-x" style="padding:32px 40px 0 40px;">
+        <div style="font-family:${FONT}; font-size:12px; font-weight:800; color:#FF7A00; letter-spacing:.1em; padding-bottom:9px;">오늘의 용어</div>
+        <div class="rule" style="border-top:2px solid #FF7A00; font-size:0; line-height:0;">&nbsp;</div>
+      </td></tr>
+
+      <tr><td class="pad-x" style="padding:18px 40px 0 40px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="bg-term" bgcolor="#FFF8F2" style="background-color:#FFF8F2; border-radius:8px;">
+          <tr><td style="padding:18px 20px;">
+
+            <div class="t-ink" style="font-family:${FONT}; font-size:17px; line-height:1.4; font-weight:800; color:#16181D; letter-spacing:-.01em;">
+              ${escapeHtml(term.term)}
+            </div>
+            <p class="t-body" style="margin:9px 0 0 0; font-family:${FONT}; font-size:14px; line-height:1.7; color:#5A6172;">
+              ${escapeHtml(term.definition)}
+            </p>
+            ${
+              sourceLink
+                ? `<p class="t-mute" style="margin:10px 0 0 0; font-family:${FONT}; font-size:12px; line-height:1.5; color:#9AA1B0;">나온 소식&nbsp;&nbsp;${sourceLink}</p>`
+                : ''
+            }
+
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>`;
+}
+
 /**
  * 개인화 다이제스트 이메일 HTML을 만든다. 이메일 클라이언트 호환을 위해 인라인 스타일 위주로 작성하고,
  * 다크모드는 <style> 블록(prefers-color-scheme + Outlook.com용 [data-ogsc])으로 별도 처리한다.
  * 오늘의 시그널(히어로) 1건을 강조하고, 나머지는 SK 소식/뉴스로 나눠 압축 리스트로 보여준다.
  * 배경/글자색은 항상 쌍으로 인라인 지정한다 — 한쪽만 지정하면 클라이언트 자체 다크모드가
  * 상속된 기본 글자색만 반전시켜 흰 글씨/밝은 배경처럼 안 보이는 조합이 생길 수 있다.
- * @param {{ subscriberName?: string, issueDate: string, items: Array<{title:string,url:string,source?:string,is_pinned?:boolean}>, weather?: {icon:string,tempMax:number,tempMin:number,blurb:string}|null, emptyTagNames?: string[], baseUrl?: string, digestToken?: string }} params
+ * @param {{ subscriberName?: string, issueDate: string, items: Array<{title:string,url:string,source?:string,is_pinned?:boolean,summary?:string}>, weather?: {icon:string,tempMax:number,tempMin:number,blurb:string}|null, emptyTagNames?: string[], baseUrl?: string, digestToken?: string, term?: {term:string,definition:string,sourceTitle?:string,sourceUrl?:string}|null }} params
  */
 export function buildDigestHtml({
   subscriberName,
@@ -123,7 +178,8 @@ export function buildDigestHtml({
   weather,
   emptyTagNames = [],
   baseUrl = 'https://ax-signal-newsletter.vercel.app',
-  digestToken
+  digestToken,
+  term
 }) {
   const greeting = pickGreeting(subscriberName);
   const preheader = buildPreheader(items);
@@ -176,6 +232,7 @@ export function buildDigestHtml({
     .bg-card    { background-color:#171A20 !important; }
     .bg-hero    { background-color:#1F1418 !important; }
     .bg-weather { background-color:#232733 !important; }
+    .bg-term    { background-color:#21190F !important; }
     .t-ink      { color:#F2F4F7 !important; }
     .t-body     { color:#C3C9D4 !important; }
     .t-mute     { color:#8E96A5 !important; }
@@ -186,6 +243,7 @@ export function buildDigestHtml({
   [data-ogsc] .bg-card    { background-color:#171A20 !important; }
   [data-ogsc] .bg-hero    { background-color:#1F1418 !important; }
   [data-ogsc] .bg-weather { background-color:#232733 !important; }
+  [data-ogsc] .bg-term    { background-color:#21190F !important; }
   [data-ogsc] .t-ink      { color:#F2F4F7 !important; }
   [data-ogsc] .t-body     { color:#C3C9D4 !important; }
   [data-ogsc] .t-mute     { color:#8E96A5 !important; }
@@ -246,6 +304,7 @@ export function buildDigestHtml({
     ${renderCompactSection('뉴스', externalItems, { titleColor: '#2E5BFF', labelColor: '#9AA1B0' })}
     ${emptyTagHtml}
     ${fallbackHtml}
+    ${renderTermOfDay(term)}
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr><td style="height:40px; font-size:0; line-height:0;">&nbsp;</td></tr>

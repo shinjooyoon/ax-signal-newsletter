@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Resend } from 'resend';
-import { getSupabase, getContentForSend, getEmptyTagNames, todayKST } from './db.js';
+import { getSupabase, getContentForSend, getEmptyTagNames, getTermForIssue, todayKST } from './db.js';
 import { buildDigestHtml } from './emailTemplate.js';
 import { getWeatherInfo } from './weather.js';
 
@@ -57,6 +57,9 @@ async function main() {
   const weather = await getWeatherInfo(); // 판교 기준, 모든 구독자 공통 (API 실패 시에만 null)
   if (weather) console.log(`[날씨] ${weather.blurb}`);
 
+  const term = await getTermForIssue(supabase, issue.id); // 오늘의 용어, 모든 구독자 공통 (없으면 null)
+  if (term) console.log(`[오늘의 용어] ${term.term}`);
+
   for (const send of sends) {
     const subscriber = send.subscribers;
     // buildIssue.js가 이 send에 실제로 매칭해 넣었던 콘텐츠 그대로 재사용 (재계산하지 않음)
@@ -71,7 +74,8 @@ async function main() {
       weather,
       emptyTagNames,
       baseUrl: process.env.WEB_BASE_URL,
-      digestToken: send.digest_token
+      digestToken: send.digest_token,
+      term
     });
 
     try {

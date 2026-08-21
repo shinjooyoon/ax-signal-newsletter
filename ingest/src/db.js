@@ -183,6 +183,39 @@ export async function getContentForSend(supabase, sendId) {
   });
 }
 
+/** 지금까지 "오늘의 용어"로 다룬 용어 이름 목록 (중복 방지용 프롬프트 제외 목록). */
+export async function getUsedTerms(supabase) {
+  const { data } = await supabase.from('terms').select('term');
+  return [...new Set((data ?? []).map((r) => r.term))];
+}
+
+/** 이번 발송 회차의 "오늘의 용어"를 저장한다. 회차당 최대 1개(buildIssue.js가 재실행 시 재선정하지 않음). */
+export async function saveTermOfDay(supabase, issueId, { term, definition, sourceContentId }) {
+  const { error } = await supabase.from('terms').insert({
+    issue_id: issueId,
+    term,
+    definition,
+    source_content_id: sourceContentId ?? null
+  });
+  if (error) throw error;
+}
+
+/** send 시점에 이번 회차의 "오늘의 용어"(있으면)를 가져온다. 전 구독자 공통 — 회차당 1개뿐이라 구독자 무관. */
+export async function getTermForIssue(supabase, issueId) {
+  const { data } = await supabase
+    .from('terms')
+    .select('term, definition, content_items!source_content_id(title, url)')
+    .eq('issue_id', issueId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    term: data.term,
+    definition: data.definition,
+    sourceTitle: data.content_items?.title ?? null,
+    sourceUrl: data.content_items?.url ?? null
+  };
+}
+
 /**
  * 구독자가 고른 태그 중, 이번 send에 콘텐츠가 하나도 안 나온(오늘 소진된) 태그 이름 목록.
  * "없으면 없다고" 표시하기 위해 씀 — 새 컬럼 없이 subscriber_tags와 subscriber_sent_content.tag_id만 비교.

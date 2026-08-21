@@ -11,7 +11,8 @@
     "build:issue": "node src/buildIssue.js",
     "send:digest": "node src/sendDigest.js",
     "status": "node src/status.js",
-    "reset:sends": "node src/resetSends.js"
+    "reset:sends": "node src/resetSends.js",
+    "backfill:summaries": "node src/backfillSummaries.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",

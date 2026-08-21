@@ -8,8 +8,11 @@ import {
   markPinnedUsed,
   markTagUsed,
   markExternalNewsUsed,
+  getUsedTerms,
+  saveTermOfDay,
   todayKST
 } from './db.js';
+import { pickTermOfDay } from './summarizer.js';
 
 // 특정 발송 회차(issue)에 대해 콘텐츠를 골라 sends 테이블에 저장한다.
 //
@@ -144,6 +147,41 @@ async function main() {
       picks.affiliate.map((item) => item.id)
     );
     console.log(`[태그 공유 픽] ${tagId} — 계열사 ${picks.affiliate.length}`);
+  }
+
+  // 오늘의 용어 — 이번 회차 전체에서 딱 1개, 전 구독자 공통(공유 픽과 같은 방식).
+  // 재실행해도 다시 안 뽑히게 이미 있으면 건너뛴다.
+  const { data: existingTerm } = await supabase.from('terms').select('id').eq('issue_id', issue.id).maybeSingle();
+  if (!existingTerm) {
+    const pool = [];
+    const poolIds = new Set();
+    const addToPool = (item) => {
+      if (item && !poolIds.has(item.id)) {
+        poolIds.add(item.id);
+        pool.push(item);
+      }
+    };
+    addToPool(pinnedPick);
+    externalNewsPicks.forEach(addToPool);
+    for (const picks of tagPicksById.values()) {
+      picks.affiliate.forEach(addToPool);
+    }
+
+    if (pool.length > 0) {
+      const usedTerms = await getUsedTerms(supabase);
+      const picked = await pickTermOfDay(pool, usedTerms);
+      if (picked) {
+        const sourceItem = picked.sourceIndex ? pool[picked.sourceIndex - 1] : null;
+        await saveTermOfDay(supabase, issue.id, {
+          term: picked.term,
+          definition: picked.definition,
+          sourceContentId: sourceItem?.id ?? null
+        });
+        console.log(`[오늘의 용어] ${picked.term}`);
+      } else {
+        console.log('[오늘의 용어] 마땅한 용어 없음');
+      }
+    }
   }
 
   // 구독자별로 sends 생성 — 같은 태그를 고른 사람은 전부 같은 콘텐츠를 받는다

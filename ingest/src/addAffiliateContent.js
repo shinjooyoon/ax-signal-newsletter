@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { getSupabase, getLeafTags } from './db.js';
 import { tagContent } from './tagger.js';
+import { summarizeContent } from './summarizer.js';
 
 // SK 계열사 중 RSS가 없는 곳(SK이노베이션 E&S, SK이노베이션, SK바이오팜 등)은
 // 이 스크립트로 수동 등록한다. addSkaxContent.js와 거의 같지만:
@@ -49,6 +50,10 @@ async function main() {
     return;
   }
 
+  // --summary로 넣은 텍스트를 그대로 저장하면 원문을 옮겨 적었을 때 저작권 문제가 생길 수
+  // 있어서, RSS와 동일하게 재서술을 거친다(너무 짧으면 null).
+  const summary = args.summary ? await summarizeContent({ title: args.title, rawText: args.summary }) : null;
+
   const { data: inserted, error: insertError } = await supabase
     .from('content_items')
     .insert({
@@ -57,7 +62,7 @@ async function main() {
       source: args.source,
       content_type: 'external',
       is_pinned: false,
-      summary: args.summary ?? null
+      summary
     })
     .select('id')
     .single();
@@ -67,7 +72,7 @@ async function main() {
     process.exit(1);
   }
 
-  const tags = await tagContent({ title: args.title, summary: args.summary }, leafTags);
+  const tags = await tagContent({ title: args.title, summary: summary ?? args.summary }, leafTags);
   if (tags.length > 0) {
     const rows = tags
       .map((t) => {

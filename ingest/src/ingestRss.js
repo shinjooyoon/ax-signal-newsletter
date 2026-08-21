@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getSupabase, getLeafTags } from './db.js';
 import { tagContent } from './tagger.js';
+import { summarizeContent } from './summarizer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -39,7 +40,7 @@ async function main() {
     for (const item of parsed.items) {
       const title = item.title ?? '(제목 없음)';
       const url = item.link;
-      const summary = item.contentSnippet ?? item.summary ?? '';
+      const rawSnippet = item.contentSnippet ?? item.summary ?? '';
       const publishedAt = item.isoDate ?? item.pubDate ?? null;
 
       if (!url) continue;
@@ -60,6 +61,10 @@ async function main() {
         continue;
       }
 
+      // 원문 스니펫을 그대로 저장/노출하면 저작권 문제가 생기므로 재서술한 요약만 저장한다.
+      // 태깅 입력으로는 원문 스니펫이 더 정보량이 많으니 재서술 실패 시 원문을 대신 쓴다(저장은 안 함).
+      const summary = await summarizeContent({ title, rawText: rawSnippet });
+
       const { data: inserted, error: insertError } = await supabase
         .from('content_items')
         .insert({
@@ -78,7 +83,7 @@ async function main() {
         continue;
       }
 
-      const tags = await tagContent({ title, summary }, leafTags);
+      const tags = await tagContent({ title, summary: summary ?? rawSnippet }, leafTags);
       if (tags.length > 0) {
         const rows = tags
           .map((t) => {

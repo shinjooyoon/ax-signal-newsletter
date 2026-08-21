@@ -25,9 +25,12 @@ SQL Editor에서 **이 순서 그대로** 실행:
 4. `migrations/004_reduce_tags.sql` (태그 10개 → 5개로 축소, 데이터 삭제 포함)
 5. `migrations/005_tag_on_sent_content.sql` (이메일에 관심 분야 배지 표시용)
 6. `migrations/006_external_news_history.sql` (외부뉴스 전체 공유 풀)
+7. `migrations/007_chemistry_out_bio_rename.sql` (화학 제거, 헬스케어→바이오 이름 변경)
+8. `migrations/008_terms.sql` ("오늘의 용어" 글로서리 테이블)
 
-`002` 이후는 `proposal/sk-affiliate-rotation` 브랜치에서 작업 중인 미승인 변경사항이라,
-`main` 기준으로만 쓸 거면 `002`까지만 실행하면 됨.
+`content_items.summary`가 요약 기능 도입 전 값(RSS 원문 스니펫)을 그대로 담고 있다면,
+`npm run backfill:summaries`로 한 번 재서술본으로 갈아끼워야 이메일에 요약이 제대로 뜬다
+(새 프로젝트에서 처음부터 시작하면 필요 없음 — `ingestRss.js` 등이 이제 처음부터 재서술해서 저장함).
 
 ## 1. 외부 RSS 소스 (자동 수집)
 
