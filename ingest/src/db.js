@@ -62,12 +62,20 @@ function sortForSelection(items) {
   });
 }
 
+// insight/case_study는 시의성 없는 콘텐츠라 시간이 지나도 계속 재사용한다(SK AX 콘텐츠가
+// 워낙 적어서 "케이스 스터디처럼" 오래 우려먹을 걸 의도적으로 허용). news/external만
+// 오래되면 후보에서 뺀다 — 뉴스는 며칠 지나면 정보로서의 가치가 떨어지기 때문.
+const EVERGREEN_TYPES = new Set(['insight', 'case_study']);
+
 function dropStale(items) {
   const cutoff = Date.now() - STALE_CUTOFF_DAYS * 24 * 60 * 60 * 1000;
-  return items.filter((item) => new Date(effectiveDate(item)).getTime() >= cutoff);
+  return items.filter((item) => {
+    if (EVERGREEN_TYPES.has(item.content_type)) return true;
+    return new Date(effectiveDate(item)).getTime() >= cutoff;
+  });
 }
 
-const CONTENT_FIELDS = 'id, title, url, summary, source, is_pinned, published_at, created_at';
+const CONTENT_FIELDS = 'id, title, url, summary, source, is_pinned, content_type, published_at, created_at';
 
 /**
  * 같은 태그를 고른 구독자는 전부 같은 콘텐츠를 받도록, "다음에 뭘 보낼지"를

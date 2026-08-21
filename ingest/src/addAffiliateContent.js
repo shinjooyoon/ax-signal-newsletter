@@ -26,7 +26,11 @@ function printUsage() {
     --title "제목" \\
     --url "https://..." \\
     --source "SK이노베이션 E&S" \\
+    --published 2026-08-15 \\
     --summary "간단 요약 (선택)"
+
+--published: 원문 페이지에 있는 실제 발행일(YYYY-MM-DD). 없으면 "오늘 등록한 신선한 글"로
+             착각해서 오래된 뉴스가 30일 넘게도 계속 재사용될 수 있으니 꼭 넣어주세요.
 `);
 }
 
@@ -35,6 +39,9 @@ async function main() {
   if (!args.title || !args.url || !args.source) {
     printUsage();
     process.exit(1);
+  }
+  if (!args.published) {
+    console.warn('경고: --published가 없습니다. 발행일 없이는 "오늘 등록 = 오늘 뉴스"로 취급돼서, 실제로는 오래된 뉴스가 신선한 것처럼 계속 재사용될 수 있어요.');
   }
 
   const supabase = getSupabase();
@@ -62,7 +69,8 @@ async function main() {
       source: args.source,
       content_type: 'external',
       is_pinned: false,
-      summary
+      summary,
+      published_at: args.published ?? null
     })
     .select('id')
     .single();

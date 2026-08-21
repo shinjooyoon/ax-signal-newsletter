@@ -23,12 +23,16 @@ function printUsage() {
     --title "제목" \\
     --url "https://www.skax.co.kr/..." \\
     --type news|insight|case_study \\
+    --published 2026-08-15 \\
     --summary "간단 요약 (선택)"
 
 --type 값:
-  news        뉴스룸 (company/news-rooms)
-  insight     인사이트/트렌드 (insight/trends)
-  case_study  케이스 스터디
+  news        뉴스룸 (company/news-rooms) — 원문 발행일 기준 30일 지나면 자동으로 후보에서 빠짐
+  insight     인사이트/트렌드 (insight/trends) — 시의성 없어서 오래돼도 계속 후보
+  case_study  케이스 스터디 — 시의성 없어서 오래돼도 계속 후보
+
+--published: 원문 페이지에 있는 실제 발행일(YYYY-MM-DD). news는 이게 없으면 "오늘 등록한
+             신선한 글"로 착각해서 오래된 뉴스가 계속 재사용될 수 있으니 꼭 넣어주세요.
 `);
 }
 
@@ -42,6 +46,9 @@ async function main() {
     console.error(`--type 값이 잘못됐습니다: ${args.type}`);
     printUsage();
     process.exit(1);
+  }
+  if (args.type === 'news' && !args.published) {
+    console.warn('경고: news 타입인데 --published가 없습니다. 발행일 없이는 "오늘 등록 = 오늘 뉴스"로 취급돼서, 실제로는 오래된 뉴스가 신선한 것처럼 계속 재사용될 수 있어요.');
   }
 
   const supabase = getSupabase();
@@ -69,7 +76,8 @@ async function main() {
       source: 'skax.co.kr',
       content_type: args.type,
       is_pinned: true, // SK AX 자사 콘텐츠는 구독 태그와 무관하게 항상 노출
-      summary
+      summary,
+      published_at: args.published ?? null
     })
     .select('id')
     .single();
