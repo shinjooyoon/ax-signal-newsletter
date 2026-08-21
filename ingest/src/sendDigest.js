@@ -41,7 +41,7 @@ async function main() {
     return;
   }
 
-  const { data: sends, error: sendsError } = await supabase
+  const { data: allSends, error: sendsError } = await supabase
     .from('sends')
     .select('id, subscriber_id, digest_token, subscribers(email, name)')
     .eq('issue_id', issue.id)
@@ -49,8 +49,18 @@ async function main() {
     .is('sent_at', null);
   if (sendsError) throw sendsError;
 
+  // --email로 테스트할 때는 다른 실제 구독자한테는 안 나가고 지정한 주소로만 발송된다
+  // (다른 사람들의 send는 sent_at이 그대로 null로 남아, 나중에 다시 실행하면 발송됨).
+  const sends = args.email
+    ? (allSends ?? []).filter((s) => s.subscribers.email.toLowerCase() === args.email.toLowerCase())
+    : allSends;
+
   if (!sends || sends.length === 0) {
-    console.log('발송 대기 중인 이메일이 없습니다 (이미 다 보냈거나 매칭된 send가 없음).');
+    console.log(
+      args.email
+        ? `${args.email} 앞으로 발송 대기 중인 send가 없습니다.`
+        : '발송 대기 중인 이메일이 없습니다 (이미 다 보냈거나 매칭된 send가 없음).'
+    );
     return;
   }
 
@@ -90,7 +100,18 @@ async function main() {
         continue;
       }
 
-      await supabase.from('sends').update({ sent_at: new Date().toISOString() }).eq('id', send.id);
+      // 여기서 sent_at 기록이 실패하면 이 send가 다음 실행 때 다시 "미발송"으로 잡혀서
+      // 같은 사람한테 중복 발송될 수 있으므로, 실패를 반드시 눈에 띄게 알린다.
+      const { error: markError } = await supabase
+        .from('sends')
+        .update({ sent_at: new Date().toISOString() })
+        .eq('id', send.id);
+      if (markError) {
+        console.error(
+          `  [경고] ${subscriber.email}: 메일은 보냈지만 sent_at 기록 실패 — 다음 실행 때 중복 발송될 수 있음: ${markError.message}`
+        );
+        continue;
+      }
       console.log(`  [발송 완료] ${subscriber.email} (resend id: ${data.id})`);
     } catch (err) {
       console.error(`  [발송 실패] ${subscriber.email}: ${err.message}`);
