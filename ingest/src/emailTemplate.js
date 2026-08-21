@@ -169,10 +169,11 @@ function renderTermOfDay(term) {
  * 오늘의 시그널(히어로) 1건을 강조하고, 나머지는 SK 소식/뉴스로 나눠 압축 리스트로 보여준다.
  * 배경/글자색은 항상 쌍으로 인라인 지정한다 — 한쪽만 지정하면 클라이언트 자체 다크모드가
  * 상속된 기본 글자색만 반전시켜 흰 글씨/밝은 배경처럼 안 보이는 조합이 생길 수 있다.
- * @param {{ subscriberName?: string, issueDate: string, items: Array<{title:string,url:string,source?:string,is_pinned?:boolean,summary?:string}>, weather?: {icon:string,tempMax:number,tempMin:number,blurb:string}|null, emptyTagNames?: string[], baseUrl?: string, digestToken?: string, term?: {term:string,definition:string,sourceTitle?:string,sourceUrl?:string}|null }} params
+ * @param {{ subscriberName?: string, subscriberEmail?: string, issueDate: string, items: Array<{title:string,url:string,source?:string,is_pinned?:boolean,summary?:string}>, weather?: {icon:string,tempMax:number,tempMin:number,blurb:string}|null, emptyTagNames?: string[], baseUrl?: string, digestToken?: string, term?: {term:string,definition:string,sourceTitle?:string,sourceUrl?:string}|null }} params
  */
 export function buildDigestHtml({
   subscriberName,
+  subscriberEmail,
   issueDate,
   items,
   weather,
@@ -321,7 +322,7 @@ export function buildDigestHtml({
     ${
       digestToken
         ? `<p style="margin:13px 0 0 0; font-family:${FONT}; font-size:12px; line-height:1.7;">
-      <a href="${escapeHtml(baseUrl)}/" class="t-mute" style="color:#9AA1B0; text-decoration:underline;">관심 분야 바꾸기</a>
+      <a href="${escapeHtml(baseUrl)}/${subscriberEmail ? `?email=${encodeURIComponent(subscriberEmail)}` : ''}" class="t-mute" style="color:#9AA1B0; text-decoration:underline;">관심 분야 바꾸기</a>
       <span class="t-mute" style="color:#C6CBD4;">&nbsp;&nbsp;|&nbsp;&nbsp;</span>
       <a href="${escapeHtml(baseUrl)}/unsubscribe/${escapeHtml(digestToken)}" class="t-mute" style="color:#9AA1B0; text-decoration:underline;">구독 해지</a>
     </p>`

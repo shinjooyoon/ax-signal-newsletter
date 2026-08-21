@@ -5,7 +5,8 @@ import SignupForm from './SignupForm';
 // 로고(워드마크)에만 쓰는 폰트 — 본문은 계속 Geist를 씀
 const shareTech = Share_Tech({ weight: '400', subsets: ['latin'] });
 
-export default async function Home() {
+export default async function Home({ searchParams }) {
+  const { email } = await searchParams;
   const supabase = getSupabase();
   const { data: tags, error } = await supabase
     .from('tags')
@@ -53,7 +54,7 @@ export default async function Home() {
             <p className="mt-2 mb-7 text-sm leading-relaxed text-neutral-500">
               관심 있는 산업 분야를 선택하면, 관련 AI/AX 소식만 골라서 보내드려요.
             </p>
-            <SignupForm tags={tags} />
+            <SignupForm tags={tags} defaultEmail={typeof email === 'string' ? email : ''} />
           </div>
         </div>
 

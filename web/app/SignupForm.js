@@ -11,7 +11,7 @@ const LOW_CONTENT_TAGS = new Set(['바이오']);
 const inputClass =
   'w-full rounded-xl border border-neutral-200 bg-neutral-50/60 px-3.5 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 transition focus:border-accent focus:bg-white focus:outline-none focus:ring-4 focus:ring-accent-soft';
 
-export default function SignupForm({ tags }) {
+export default function SignupForm({ tags, defaultEmail = '' }) {
   const [state, formAction, pending] = useActionState(subscribe, initialState);
   const [selectedCount, setSelectedCount] = useState(0);
 
@@ -26,7 +26,8 @@ export default function SignupForm({ tags }) {
           name="email"
           type="email"
           required
-          autoFocus
+          autoFocus={!defaultEmail}
+          defaultValue={defaultEmail}
           placeholder="you@company.com"
           className={inputClass}
         />
