@@ -256,6 +256,8 @@ export function buildDigestHtml({
     .h1 { font-size:22px !important; }
     .hero-title { font-size:20px !important; }
     .item-title { font-size:16px !important; }
+    /* 좁은 화면에서 히어로 요약/용어 뜻풀이처럼 여러 줄로 꺾이는 문단이 빽빽해 보이지 않게 줄간격을 넉넉히 */
+    .t-body { line-height:1.9 !important; }
   }
 </style>
 </head>
