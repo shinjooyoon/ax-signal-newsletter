@@ -252,6 +252,9 @@ export function buildDigestHtml({
 
   a { text-decoration:none; }
   @media screen and (max-width:600px) {
+    /* 카드가 유동폭이 되면서, 바깥 여백(회색 배경)이 카드 자체 안쪽 여백과 겹쳐
+       "박스 안에 박스"처럼 보이던 문제 — 모바일에서는 바깥 여백을 최소화 */
+    .outer-pad { padding-left:8px !important; padding-right:8px !important; }
     .pad-x { padding-left:20px !important; padding-right:20px !important; }
     .hero-pad { padding-left:20px !important; padding-right:20px !important; }
     .h1 { font-size:22px !important; }
@@ -271,7 +274,7 @@ export function buildDigestHtml({
 </div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="bg-page" bgcolor="#F4F5F7" style="background-color:#F4F5F7;">
-<tr><td align="center" style="padding:24px 12px 40px 12px;">
+<tr><td align="center" class="outer-pad" style="padding:24px 12px 40px 12px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:680px;">
 
   <tr><td style="padding:8px 4px 18px 4px;">
