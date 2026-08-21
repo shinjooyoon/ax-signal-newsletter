@@ -269,7 +269,7 @@ export function buildDigestHtml({
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="bg-page" bgcolor="#F4F5F7" style="background-color:#F4F5F7;">
 <tr><td align="center" style="padding:24px 12px 40px 12px;">
-  <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+  <table role="presentation" width="680" cellpadding="0" cellspacing="0" border="0" style="width:680px; max-width:680px;">
 
   <tr><td style="padding:8px 4px 18px 4px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
