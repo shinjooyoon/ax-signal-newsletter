@@ -79,7 +79,6 @@ async function main() {
 
     const html = buildDigestHtml({
       subscriberName: subscriber.name,
-      subscriberEmail: subscriber.email,
       issueDate: issue.issue_date,
       items: matched.slice(0, 8),
       weather,

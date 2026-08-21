@@ -6,8 +6,21 @@ import SignupForm from './SignupForm';
 const shareTech = Share_Tech({ weight: '400', subsets: ['latin'] });
 
 export default async function Home({ searchParams }) {
-  const { email } = await searchParams;
+  const { token } = await searchParams;
   const supabase = getSupabase();
+
+  // 이메일 링크에는 구독자 이메일을 직접 노출하지 않고(피싱 URL로 오인돼 Gmail 콘텐츠
+  // 보안 필터에 걸린 전례가 있음), sends.digest_token으로 서버에서만 이메일을 조회한다.
+  let defaultEmail = '';
+  if (typeof token === 'string') {
+    const { data: send } = await supabase
+      .from('sends')
+      .select('subscribers(email)')
+      .eq('digest_token', token)
+      .maybeSingle();
+    defaultEmail = send?.subscribers?.email ?? '';
+  }
+
   const { data: tags, error } = await supabase
     .from('tags')
     .select('id, slug, name')
@@ -54,7 +67,7 @@ export default async function Home({ searchParams }) {
             <p className="mt-2 mb-7 text-sm leading-relaxed text-neutral-500">
               관심 있는 산업 분야를 선택하면, 관련 AI/AX 소식만 골라서 보내드려요.
             </p>
-            <SignupForm tags={tags} defaultEmail={typeof email === 'string' ? email : ''} />
+            <SignupForm tags={tags} defaultEmail={defaultEmail} />
           </div>
         </div>
 
