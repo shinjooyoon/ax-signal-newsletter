@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { Resend } from 'resend';
 import { getSupabase, getContentForSend, getEmptyTagNames, todayKST } from './db.js';
 import { buildDigestHtml } from './emailTemplate.js';
-import { getWeatherBlurb } from './weather.js';
+import { getWeatherInfo } from './weather.js';
 
 // 5단계(buildIssue.js)에서 만든 sends를 실제 이메일로 발송한다.
 // 아직 발신 도메인 인증 전이면 RESEND_FROM_EMAIL을 onboarding@resend.dev로 두고
@@ -54,8 +54,8 @@ async function main() {
     return;
   }
 
-  const weatherBlurb = await getWeatherBlurb(); // 판교 기준, 모든 구독자 공통 (오늘 알릴 게 없으면 null)
-  if (weatherBlurb) console.log(`[날씨] ${weatherBlurb}`);
+  const weather = await getWeatherInfo(); // 판교 기준, 모든 구독자 공통 (API 실패 시에만 null)
+  if (weather) console.log(`[날씨] ${weather.blurb}`);
 
   for (const send of sends) {
     const subscriber = send.subscribers;
@@ -68,7 +68,7 @@ async function main() {
       subscriberName: subscriber.name,
       issueDate: issue.issue_date,
       items: matched.slice(0, 8),
-      weatherBlurb,
+      weather,
       emptyTagNames
     });
 
