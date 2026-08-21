@@ -60,7 +60,7 @@ function renderHero(item) {
   const badge = displaySource(item);
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr><td class="pad-x" style="padding:26px 40px 0 40px;">
+      <tr><td class="pad-x" style="padding:18px 40px 0 40px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="bg-hero" bgcolor="#FFF6F7" style="background-color:#FFF6F7; border-radius:10px;">
           <tr><td class="hero-pad" style="padding:22px 24px 24px 24px;">
 
@@ -119,7 +119,7 @@ function renderCompactSection(title, items, { titleColor, labelColor }) {
   const rows = items.map((item, idx) => renderCompactItem(item, { labelColor, first: idx === 0 })).join('');
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr><td class="pad-x" style="padding:32px 40px 0 40px;">
+      <tr><td class="pad-x" style="padding:22px 40px 0 40px;">
         <div style="font-family:${FONT}; font-size:12px; font-weight:800; color:${titleColor}; letter-spacing:.1em; padding-bottom:9px;">${escapeHtml(title)}</div>
         <div class="rule" style="border-top:2px solid ${titleColor}; font-size:0; line-height:0;">&nbsp;</div>
       </td></tr>
@@ -136,7 +136,7 @@ function renderTermOfDay(term) {
     : '';
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr><td class="pad-x" style="padding:32px 40px 0 40px;">
+      <tr><td class="pad-x" style="padding:22px 40px 0 40px;">
         <div style="font-family:${FONT}; font-size:12px; font-weight:800; color:#FF7A00; letter-spacing:.1em; padding-bottom:9px;">오늘의 용어</div>
         <div class="rule" style="border-top:2px solid #FF7A00; font-size:0; line-height:0;">&nbsp;</div>
       </td></tr>
@@ -208,7 +208,7 @@ export function buildDigestHtml({
   const fallbackHtml =
     items.length === 0
       ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr><td class="pad-x" style="padding:26px 40px 0 40px;">
+          <tr><td class="pad-x" style="padding:18px 40px 0 40px;">
             <p class="t-body" style="margin:0; font-family:${FONT}; font-size:14px; line-height:1.7; color:#5A6172;">오늘은 조용한 날이에요. 새로운 소식이 모이면 다시 보내드릴게요.</p>
           </td></tr>
         </table>`
@@ -252,8 +252,9 @@ export function buildDigestHtml({
   a { text-decoration:none; }
   @media screen and (max-width:600px) {
     /* 카드가 유동폭이 되면서, 바깥 여백(회색 배경)이 카드 자체 안쪽 여백과 겹쳐
-       "박스 안에 박스"처럼 보이던 문제 — 모바일에서는 바깥 여백을 최소화 */
-    .outer-pad { padding-left:8px !important; padding-right:8px !important; }
+       "박스 안에 박스"처럼 보이던 문제 — 모바일에서는 바깥 여백을 아예 없앰
+       (카드 자체는 각진 모서리라 여백 없이 화면 끝까지 붙어도 어색하지 않음) */
+    .outer-pad { padding-left:0 !important; padding-right:0 !important; }
     .pad-x { padding-left:20px !important; padding-right:20px !important; }
     .hero-pad { padding-left:20px !important; padding-right:20px !important; }
     .h1 { font-size:22px !important; }
