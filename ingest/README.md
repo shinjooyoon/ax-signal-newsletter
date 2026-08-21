@@ -11,6 +11,9 @@ cp .env.example .env   # 값 채워넣기
 - `ANTHROPIC_API_KEY`: Claude API 키
 - `RESEND_API_KEY` / `RESEND_FROM_EMAIL`: 이메일 발송용 (6단계, resend.com). 발신 도메인
   인증 전에는 `RESEND_FROM_EMAIL=onboarding@resend.dev`로 두면 계정 본인 이메일로만 테스트 가능
+- `WEB_BASE_URL` (선택): 이메일 하단 "관심 분야 바꾸기"/"구독 해지" 링크가 가리킬 가입 폼
+  주소. 안 넣으면 `https://ax-signal-newsletter.vercel.app`로 기본 동작하므로, 도메인을
+  바꾸지 않는 한 새로 설정 안 해도 됨
 
 ### Supabase에 스키마 적용 (새 프로젝트라면 순서대로 전부 실행)
 

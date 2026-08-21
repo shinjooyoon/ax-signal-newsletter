@@ -69,7 +69,9 @@ async function main() {
       issueDate: issue.issue_date,
       items: matched.slice(0, 8),
       weather,
-      emptyTagNames
+      emptyTagNames,
+      baseUrl: process.env.WEB_BASE_URL,
+      digestToken: send.digest_token
     });
 
     try {

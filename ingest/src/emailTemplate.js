@@ -112,9 +112,19 @@ function renderCompactSection(title, items, { titleColor, labelColor }) {
  * 개인화 다이제스트 이메일 HTML을 만든다. 이메일 클라이언트 호환을 위해 인라인 스타일 위주로 작성하고,
  * 다크모드는 <style> 블록(prefers-color-scheme + Outlook.com용 [data-ogsc])으로 별도 처리한다.
  * 오늘의 시그널(히어로) 1건을 강조하고, 나머지는 SK 소식/뉴스로 나눠 압축 리스트로 보여준다.
- * @param {{ subscriberName?: string, issueDate: string, items: Array<{title:string,url:string,source?:string,is_pinned?:boolean}>, weather?: {icon:string,tempMax:number,tempMin:number,blurb:string}|null, emptyTagNames?: string[] }} params
+ * 배경/글자색은 항상 쌍으로 인라인 지정한다 — 한쪽만 지정하면 클라이언트 자체 다크모드가
+ * 상속된 기본 글자색만 반전시켜 흰 글씨/밝은 배경처럼 안 보이는 조합이 생길 수 있다.
+ * @param {{ subscriberName?: string, issueDate: string, items: Array<{title:string,url:string,source?:string,is_pinned?:boolean}>, weather?: {icon:string,tempMax:number,tempMin:number,blurb:string}|null, emptyTagNames?: string[], baseUrl?: string, digestToken?: string }} params
  */
-export function buildDigestHtml({ subscriberName, issueDate, items, weather, emptyTagNames = [] }) {
+export function buildDigestHtml({
+  subscriberName,
+  issueDate,
+  items,
+  weather,
+  emptyTagNames = [],
+  baseUrl = 'https://ax-signal-newsletter.vercel.app',
+  digestToken
+}) {
   const greeting = pickGreeting(subscriberName);
   const preheader = buildPreheader(items);
   const headerDate = formatHeaderDate(issueDate);
@@ -125,7 +135,7 @@ export function buildDigestHtml({ subscriberName, issueDate, items, weather, emp
   const externalItems = rest.filter((item) => !item.is_pinned && !AFFILIATE_SOURCES.has(item.source));
 
   const weatherHtml = weather
-    ? `<div style="background:#f3f4f6;border-radius:8px;padding:10px 14px;font-size:13px;margin:16px 0 0 0;">${escapeHtml(weather.blurb)}</div>`
+    ? `<div class="bg-weather t-body" style="background:#f3f4f6;color:#374151;border-radius:8px;padding:10px 14px;font-size:13px;margin:16px 0 0 0;">${escapeHtml(weather.blurb)}</div>`
     : '';
 
   // 구독자가 고른 태그인데 오늘은 SK 계열사 소식이 없었던 것들을 명시적으로 알려준다 (조용히 빠지지 않게)
@@ -162,22 +172,24 @@ export function buildDigestHtml({ subscriberName, issueDate, items, weather, emp
 <![endif]-->
 <style>
   @media (prefers-color-scheme: dark) {
-    .bg-page  { background-color:#0E1014 !important; }
-    .bg-card  { background-color:#171A20 !important; }
-    .bg-hero  { background-color:#1F1418 !important; }
-    .t-ink    { color:#F2F4F7 !important; }
-    .t-body   { color:#C3C9D4 !important; }
-    .t-mute   { color:#8E96A5 !important; }
-    .rule     { border-color:#2B313B !important; }
-    .badge    { border-color:#5C2733 !important; }
+    .bg-page    { background-color:#0E1014 !important; }
+    .bg-card    { background-color:#171A20 !important; }
+    .bg-hero    { background-color:#1F1418 !important; }
+    .bg-weather { background-color:#232733 !important; }
+    .t-ink      { color:#F2F4F7 !important; }
+    .t-body     { color:#C3C9D4 !important; }
+    .t-mute     { color:#8E96A5 !important; }
+    .rule       { border-color:#2B313B !important; }
+    .badge      { border-color:#5C2733 !important; }
   }
-  [data-ogsc] .bg-page { background-color:#0E1014 !important; }
-  [data-ogsc] .bg-card { background-color:#171A20 !important; }
-  [data-ogsc] .bg-hero { background-color:#1F1418 !important; }
-  [data-ogsc] .t-ink   { color:#F2F4F7 !important; }
-  [data-ogsc] .t-body  { color:#C3C9D4 !important; }
-  [data-ogsc] .t-mute  { color:#8E96A5 !important; }
-  [data-ogsc] .rule    { border-color:#2B313B !important; }
+  [data-ogsc] .bg-page    { background-color:#0E1014 !important; }
+  [data-ogsc] .bg-card    { background-color:#171A20 !important; }
+  [data-ogsc] .bg-hero    { background-color:#1F1418 !important; }
+  [data-ogsc] .bg-weather { background-color:#232733 !important; }
+  [data-ogsc] .t-ink      { color:#F2F4F7 !important; }
+  [data-ogsc] .t-body     { color:#C3C9D4 !important; }
+  [data-ogsc] .t-mute     { color:#8E96A5 !important; }
+  [data-ogsc] .rule       { border-color:#2B313B !important; }
 
   a { text-decoration:none; }
   @media screen and (max-width:600px) {
@@ -245,6 +257,15 @@ export function buildDigestHtml({ subscriberName, issueDate, items, weather, emp
       평일 아침 7시에 보내드려요<br>
       AX Signal — 관심 산업 분야 기반 AI/AX 뉴스레터
     </p>
+    ${
+      digestToken
+        ? `<p style="margin:13px 0 0 0; font-family:${FONT}; font-size:12px; line-height:1.7;">
+      <a href="${escapeHtml(baseUrl)}/" class="t-mute" style="color:#9AA1B0; text-decoration:underline;">관심 분야 바꾸기</a>
+      <span class="t-mute" style="color:#C6CBD4;">&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+      <a href="${escapeHtml(baseUrl)}/unsubscribe/${escapeHtml(digestToken)}" class="t-mute" style="color:#9AA1B0; text-decoration:underline;">구독 해지</a>
+    </p>`
+        : ''
+    }
   </td></tr>
 
   </table>
