@@ -47,6 +47,14 @@ npm run ingest:rss       # 실제 수집 + 자동 태깅 + 저장
 
 정기 실행하려면 cron이나 GitHub Actions 스케줄로 `npm run ingest:rss`를 주기적으로 돌리면 된다.
 
+```bash
+npm run prune:news   # 7일 넘게 안 뽑힌 "뉴스" 후보를 삭제 (AI 뉴스는 공급이 넉넉해서 오래 쌓아둘 필요 없음)
+```
+
+SK AX/SK 계열사 콘텐츠는 공급이 적어서(바이오는 이미 0개) 대상에서 제외되고, 이미 발송된
+적 있는 콘텐츠도 지우지 않는다 — `.github/workflows/daily-digest.yml`에서 `ingest:rss` 직후
+자동 실행됨.
+
 ## 2. SK AX 자사 콘텐츠 (수동 등록)
 
 SK AX 뉴스룸/인사이트·트렌드/케이스 스터디는 RSS 또는 sitemap 제공 여부가

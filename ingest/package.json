@@ -12,7 +12,8 @@
     "send:digest": "node src/sendDigest.js",
     "status": "node src/status.js",
     "reset:sends": "node src/resetSends.js",
-    "backfill:summaries": "node src/backfillSummaries.js"
+    "backfill:summaries": "node src/backfillSummaries.js",
+    "prune:news": "node src/pruneStaleNews.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",

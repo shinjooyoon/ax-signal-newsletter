@@ -32,6 +32,9 @@ jobs:
       - name: Collect RSS content
         run: npm run ingest:rss
 
+      - name: Prune stale unused news
+        run: npm run prune:news
+
       - name: Build today's issue
         run: npm run build:issue
 
