@@ -12,7 +12,7 @@ const SUMMARY_TOOL = {
       summary: {
         type: 'string',
         description:
-          '2~3문장, 원문 문장을 그대로 베끼지 말고 반드시 자기 말로 재서술. 무엇을, 왜 중요한지 위주로.'
+          '1문장(최대 2문장), 80자 이내. 원문 문장을 그대로 베끼지 말고 반드시 자기 말로 재서술. 무엇을, 왜 중요한지 위주로 짧고 굵게.'
       }
     },
     required: ['summary']
@@ -39,10 +39,11 @@ export async function summarizeContent({ title, rawText }) {
     messages: [
       {
         role: 'user',
-        content: `아래 기사를 뉴스레터 다이제스트용으로 2~3문장 요약해줘.
+        content: `아래 기사를 뉴스레터 다이제스트용으로 1문장(길어도 2문장, 80자 이내)으로 짧게 요약해줘.
 
 중요: 원문 문장을 그대로 복사하면 안 된다. 반드시 너 자신의 말로 다시 써야 한다(재서술).
 독자는 AI/AX(AI Transformation)를 공부 중인 사람들이니, 무엇이 왜 중요한지가 드러나게 써줘.
+길게 늘어놓지 말고 핵심만 짧고 굵게.
 
 제목: ${title}
 원문: ${cleanedRaw.slice(0, 2000)}`
