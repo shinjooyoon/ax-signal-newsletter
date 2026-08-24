@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { getSupabase, getLeafTags } from './db.js';
 import { tagContent } from './tagger.js';
 import { summarizeContent } from './summarizer.js';
+import { AFFILIATE_SOURCES } from './constants.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -83,7 +84,11 @@ async function main() {
         continue;
       }
 
-      const tags = await tagContent({ title, summary: summary ?? rawSnippet }, leafTags);
+      const tags = await tagContent(
+        { title, summary: summary ?? rawSnippet },
+        leafTags,
+        { isAffiliate: AFFILIATE_SOURCES.has(feed.name) }
+      );
       if (tags.length > 0) {
         const rows = tags
           .map((t) => {

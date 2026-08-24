@@ -33,12 +33,32 @@ const TAG_TOOL = {
  * 콘텐츠 제목/요약을 보고 해당하는 태그를 판단한다.
  * @param {{title: string, summary?: string}} content
  * @param {{slug: string, name: string}[]} availableTags - 후보 태그 목록 (리프 태그만)
+ * @param {{isAffiliate?: boolean}} [options] - SK 계열사(자사) 콘텐츠면 true. "SK 소식" 섹션은
+ *   구독자가 관심 산업의 SK 계열사 동향을 파악하려는 목적이라 AI 관련성을 요구하지 않는다.
+ *   반면 태그 무관 공유 "뉴스" 풀은 AI/AX 뉴스레터라는 정체성을 지켜야 해서 계속 AI 관련성을
+ *   요구한다(isAffiliate=false, 기본값) — 이 구분이 없으면 태양광 설치 뉴스 같은 AI 무관
+ *   콘텐츠가 "일반 AI 트렌드"에 잘못 붙는 예전 버그가 재발한다.
  * @returns {Promise<{slug: string, confidence: number}[]>}
  */
-export async function tagContent(content, availableTags) {
+export async function tagContent(content, availableTags, { isAffiliate = false } = {}) {
   if (!availableTags || availableTags.length === 0) return [];
 
   const tagList = availableTags.map((t) => `- ${t.slug}: ${t.name}`).join('\n');
+
+  const relevanceRule = isAffiliate
+    ? `이 콘텐츠는 SK 계열사(자사)가 직접 낸 소식이다. 구독자는 관심 산업 분야의 SK 계열사
+동향(사업/실적/제품/행사 등)을 파악하려는 목적으로 태그를 골랐으니, AI와 관련 없어도 된다.
+그 계열사의 실제 사업 분야에 맞는 산업 태그를 붙여라(예: 반도체 회사 소식이면 AI 언급이 없어도
+"반도체" 태그를 붙인다). 다만 그 산업과 명백히 무관한 태그는 붙이지 마라. "일반 AI 트렌드"는
+특정 산업에 안 묶이는 일반적인 AI 기술/시장 소식일 때만 써라.`
+    : `이 뉴스레터는 AI/AX(AI Transformation) 관련 소식만 다룬다. 아래 콘텐츠가
+AI·인공지능·생성형AI 기술과 실질적으로 관련이 있으면서, 동시에 아래 태그 목록 중
+어느 산업 분야에도 해당하는지 판단해줘.
+
+주의: 태그 이름이 "반도체/에너지/화학/헬스케어" 같은 산업명이라고 해서, 그 산업에 관한
+뉴스면 무조건 해당되는 게 아니다. **AI와 무관한 순수 산업/사업/ESG/사회공헌 뉴스는 태그를
+붙이지 마라** (예: 단순 투자 유치, 봉사활동, 태양광 설치 같은 AI와 상관없는 산업 뉴스는 제외).
+"일반 AI 트렌드"는 특정 산업에 안 묶이는 일반적인 AI 기술/시장 소식에만 써라.`;
 
   const message = await anthropic.messages.create({
     model: MODEL,
@@ -48,14 +68,7 @@ export async function tagContent(content, availableTags) {
     messages: [
       {
         role: 'user',
-        content: `이 뉴스레터는 AI/AX(AI Transformation) 관련 소식만 다룬다. 아래 콘텐츠가
-AI·인공지능·생성형AI 기술과 실질적으로 관련이 있으면서, 동시에 아래 태그 목록 중
-어느 산업 분야에도 해당하는지 판단해줘.
-
-주의: 태그 이름이 "반도체/에너지/화학/헬스케어" 같은 산업명이라고 해서, 그 산업에 관한
-뉴스면 무조건 해당되는 게 아니다. **AI와 무관한 순수 산업/사업/ESG/사회공헌 뉴스는 태그를
-붙이지 마라** (예: 단순 투자 유치, 봉사활동, 태양광 설치 같은 AI와 상관없는 산업 뉴스는 제외).
-"일반 AI 트렌드"는 특정 산업에 안 묶이는 일반적인 AI 기술/시장 소식에만 써라.
+        content: `${relevanceRule}
 
 명확하게 관련 있는 태그만 골라서 반환하고, 하나도 해당 안 되면 빈 배열을 반환해.
 

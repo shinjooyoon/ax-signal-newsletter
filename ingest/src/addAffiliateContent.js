@@ -80,7 +80,11 @@ async function main() {
     process.exit(1);
   }
 
-  const tags = await tagContent({ title: args.title, summary: summary ?? args.summary }, leafTags);
+  const tags = await tagContent(
+    { title: args.title, summary: summary ?? args.summary },
+    leafTags,
+    { isAffiliate: true }
+  );
   if (tags.length > 0) {
     const rows = tags
       .map((t) => {
