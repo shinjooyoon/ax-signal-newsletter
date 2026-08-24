@@ -17,6 +17,11 @@ export async function subscribe(prevState, formData) {
     return { status: 'error', message: '관심 분야를 하나 이상 선택해주세요.' };
   }
 
+  const consent = formData.get('consent');
+  if (!consent) {
+    return { status: 'error', message: '개인정보 수집·이용에 동의해주세요.' };
+  }
+
   const supabase = getSupabase();
 
   const { data: existing } = await supabase
