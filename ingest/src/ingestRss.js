@@ -51,60 +51,67 @@ async function main() {
         continue;
       }
 
-      // content_items.url이 unique 제약이라 이미 있으면 건너뜀
-      const { data: existing } = await supabase
-        .from('content_items')
-        .select('id')
-        .eq('url', url)
-        .maybeSingle();
-      if (existing) {
-        console.log(`  [스킵-중복] ${title}`);
-        continue;
-      }
-
-      // 원문 스니펫을 그대로 저장/노출하면 저작권 문제가 생기므로 재서술한 요약만 저장한다.
-      // 태깅 입력으로는 원문 스니펫이 더 정보량이 많으니 재서술 실패 시 원문을 대신 쓴다(저장은 안 함).
-      const summary = await summarizeContent({ title, rawText: rawSnippet });
-
-      const { data: inserted, error: insertError } = await supabase
-        .from('content_items')
-        .insert({
-          title,
-          url,
-          source: feed.name,
-          content_type: 'external',
-          summary,
-          published_at: publishedAt
-        })
-        .select('id')
-        .single();
-
-      if (insertError) {
-        console.error(`  저장 실패 (${title}): ${insertError.message}`);
-        continue;
-      }
-
-      const tags = await tagContent(
-        { title, summary: summary ?? rawSnippet },
-        leafTags,
-        { isAffiliate: AFFILIATE_SOURCES.has(feed.name) }
-      );
-      if (tags.length > 0) {
-        const rows = tags
-          .map((t) => {
-            const tag = leafTags.find((lt) => lt.slug === t.slug);
-            if (!tag) return null;
-            return { content_item_id: inserted.id, tag_id: tag.id, confidence: t.confidence };
-          })
-          .filter(Boolean);
-
-        if (rows.length > 0) {
-          const { error: tagError } = await supabase.from('content_tags').insert(rows);
-          if (tagError) console.error(`  태깅 저장 실패: ${tagError.message}`);
+      try {
+        // content_items.url이 unique 제약이라 이미 있으면 건너뜀
+        const { data: existing } = await supabase
+          .from('content_items')
+          .select('id')
+          .eq('url', url)
+          .maybeSingle();
+        if (existing) {
+          console.log(`  [스킵-중복] ${title}`);
+          continue;
         }
-      }
 
-      console.log(`  [저장 완료] ${title} — 태그: ${tags.map((t) => t.slug).join(', ') || '없음'}`);
+        // 원문 스니펫을 그대로 저장/노출하면 저작권 문제가 생기므로 재서술한 요약만 저장한다.
+        // 태깅 입력으로는 원문 스니펫이 더 정보량이 많으니 재서술 실패 시 원문을 대신 쓴다(저장은 안 함).
+        const summary = await summarizeContent({ title, rawText: rawSnippet });
+
+        const { data: inserted, error: insertError } = await supabase
+          .from('content_items')
+          .insert({
+            title,
+            url,
+            source: feed.name,
+            content_type: 'external',
+            summary,
+            published_at: publishedAt
+          })
+          .select('id')
+          .single();
+
+        if (insertError) {
+          console.error(`  저장 실패 (${title}): ${insertError.message}`);
+          continue;
+        }
+
+        const tags = await tagContent(
+          { title, summary: summary ?? rawSnippet },
+          leafTags,
+          { isAffiliate: AFFILIATE_SOURCES.has(feed.name) }
+        );
+        if (tags.length > 0) {
+          const rows = tags
+            .map((t) => {
+              const tag = leafTags.find((lt) => lt.slug === t.slug);
+              if (!tag) return null;
+              return { content_item_id: inserted.id, tag_id: tag.id, confidence: t.confidence };
+            })
+            .filter(Boolean);
+
+          if (rows.length > 0) {
+            const { error: tagError } = await supabase.from('content_tags').insert(rows);
+            if (tagError) console.error(`  태깅 저장 실패: ${tagError.message}`);
+          }
+        }
+
+        console.log(`  [저장 완료] ${title} — 태그: ${tags.map((t) => t.slug).join(', ') || '없음'}`);
+      } catch (err) {
+        // 항목 하나의 API 호출(요약/태깅)이 실패해도 전체 수집이 죽으면 안 된다 —
+        // 이게 없으면 이 항목 하나 때문에 build:issue/send:digest까지 통째로 스킵된다
+        // (실제로 이것 때문에 이틀 연속 발송이 안 나간 적이 있음).
+        console.error(`  [항목 처리 실패-건너뜀] ${title}: ${err.message}`);
+      }
     }
   }
 }

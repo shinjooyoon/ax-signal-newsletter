@@ -31,9 +31,11 @@ jobs:
 
       - name: Collect RSS content
         run: npm run ingest:rss
+        continue-on-error: true # 수집 단계가 실패해도 이미 쌓인 콘텐츠로 매칭/발송은 계속 진행
 
       - name: Prune stale unused news
         run: npm run prune:news
+        continue-on-error: true # 정리 실패로 발송 자체가 막히면 안 됨
 
       - name: Build today's issue
         run: npm run build:issue
