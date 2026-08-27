@@ -2,9 +2,9 @@ name: Daily digest
 
 on:
   schedule:
-    # 매주 월~금 07:00 KST = UTC 전날 22:00 (UTC 기준 요일이 하루 당겨지므로 0-4=일~목)
+    # 매주 월~금 06:30 KST = UTC 전날 21:30 (UTC 기준 요일이 하루 당겨지므로 0-4=일~목)
     # buildIssue.js 자체에도 주말 스킵 로직이 있지만 여기서도 평일만 돌게 이중으로 막는다.
-    - cron: '0 22 * * 0-4'
+    - cron: '30 21 * * 0-4'
   workflow_dispatch: {} # Actions 탭에서 수동으로도 실행 가능
 
 jobs:
