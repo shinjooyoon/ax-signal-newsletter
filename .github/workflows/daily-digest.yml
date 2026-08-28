@@ -1,10 +1,9 @@
 name: Daily digest
 
 on:
-  schedule:
-    # 매주 월~금 06:30 KST = UTC 전날 21:30 (UTC 기준 요일이 하루 당겨지므로 0-4=일~목)
-    # buildIssue.js 자체에도 주말 스킵 로직이 있지만 여기서도 평일만 돌게 이중으로 막는다.
-    - cron: '30 21 * * 0-4'
+  # 원래 여기 GitHub 기본 schedule 트리거가 있었는데, 몇 시간~하루 단위로 지연되는 문제가 있어서 제거함.
+  # 대신 web/vercel.json의 Vercel Cron이 /api/trigger-digest를 매일 21:30 UTC(06:30 KST)에 호출해서
+  # 아래 workflow_dispatch로 이 워크플로를 트리거함.
   workflow_dispatch: {} # Actions 탭에서 수동으로도 실행 가능
 
 jobs:
