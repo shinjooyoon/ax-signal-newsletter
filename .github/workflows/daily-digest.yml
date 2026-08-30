@@ -1,10 +1,16 @@
 name: Daily digest
 
 on:
-  # 원래 여기 GitHub 기본 schedule 트리거가 있었는데, 몇 시간~하루 단위로 지연되는 문제가 있어서 제거함.
-  # 대신 web/vercel.json의 Vercel Cron이 /api/trigger-digest를 매일 21:30 UTC(06:30 KST)에 호출해서
-  # 아래 workflow_dispatch로 이 워크플로를 트리거함.
-  workflow_dispatch: {} # Actions 탭에서 수동으로도 실행 가능
+  schedule:
+    # 매주 월~금 06:30 KST = UTC 전날 21:30 (UTC 기준 요일이 하루 당겨지므로 0-4=일~목)
+    # web/vercel.json의 Vercel Cron이 같은 시각에 /api/trigger-digest를 통해 이 워크플로를
+    # workflow_dispatch로도 트리거하도록 준비돼 있었는데, Vercel 쪽 Cron Job 등록과
+    # CRON_SECRET/DIGEST_TRIGGER_TOKEN 환경변수가 아직 실제로 설정 안 돼 있어서(확인함)
+    # 지금은 이 schedule이 유일한 트리거임 — 지우면 발송 자체가 안 나감.
+    # Vercel 쪽 설정이 실제로 완료되면 그때 이 schedule을 다시 빼고 넘어가면 됨(둘 다 켜두면
+    # 같은 시간대에 두 트리거가 겹쳐서 콘텐츠 큐가 동시에 소진될 위험이 있음).
+    - cron: '30 21 * * 0-4'
+  workflow_dispatch: {} # Actions 탭에서 수동으로도 실행 가능, Vercel Cron도 이걸 호출함
 
 jobs:
   run-digest:
