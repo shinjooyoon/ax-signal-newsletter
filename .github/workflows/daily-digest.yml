@@ -1,18 +1,14 @@
 name: Daily digest
 
 on:
-  schedule:
-    # 매주 월~금 06:30 KST = UTC 전날 21:30 (UTC 기준 요일이 하루 당겨지므로 0-4=일~목)
-    # web/vercel.json의 Vercel Cron이 같은 시각에 /api/trigger-digest -> workflow_dispatch로도
-    # 이 워크플로를 트리거하도록 준비돼 있고, Cron Job 등록(Enabled)과 CRON_SECRET/
-    # DIGEST_TRIGGER_TOKEN 환경변수(Production)도 실제로 존재하는 것까지 확인했지만,
-    # Vercel 대시보드의 수동 "Run" 버튼으로 테스트했을 때 /api/trigger-digest가 401을
-    # 반환하는 걸 봐서 실제 크론 호출도 인증에 걸릴지 100% 확신이 안 섬(수동 버튼이 자동
-    # 크론과 다른 헤더로 호출하는 것뿐일 수도 있음). 확신 서기 전까지는 schedule을 안전망으로
-    # 켜둠 — build:issue가 이미 발송된 회차는 건너뛰니 이중 발동돼도 큰 문제는 없음.
-    # 내일 GitHub Actions 로그에 06:30~07:30 KST 사이 workflow_dispatch로 트리거된 실행이
-    # 따로 뜨면 Vercel 경로가 정상 작동하는 거니, 그때 이 schedule을 다시 빼면 됨.
-    - cron: '30 21 * * 0-4'
+  # 진짜 원인 찾음: CRON_SECRET/DIGEST_TRIGGER_TOKEN 환경변수를 Vercel에 추가만 하고
+  # 재배포를 안 해서, 실제 배포본에는 그 값들이 반영이 안 돼 /api/trigger-digest가 항상
+  # 401을 반환하고 있었음(그래서 Vercel Cron이 매일 호출은 했어도 계속 인증 실패로 끝남).
+  # CRON_SECRET을 재발급하고 재배포한 뒤 새 값으로 직접 호출해서 200 성공 확인함 —
+  # web/vercel.json의 Vercel Cron이 매일 21:30 UTC(06:30 KST)에 이 워크플로를
+  # workflow_dispatch로 정상 트리거하는 것까지 검증됐으니 GitHub 자체 schedule은 뺌
+  # (같은 시간대에 두 트리거가 겹치는 걸 피하려는 목적, build:issue의 멱등성 덕에 켜둬도
+  # 위험하진 않았지만 이제 필요 없음).
   workflow_dispatch: {} # Actions 탭에서 수동으로도 실행 가능, Vercel Cron도 이걸 호출함
 
 jobs:
