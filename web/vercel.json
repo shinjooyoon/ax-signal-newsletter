@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/trigger-digest",
-      "schedule": "30 21 * * 0-4"
+      "schedule": "47 20 * * 0-4"
     }
   ]
 }
