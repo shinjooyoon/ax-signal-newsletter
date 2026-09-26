@@ -13,6 +13,7 @@ import {
   todayKST
 } from './db.js';
 import { pickTermOfDay } from './summarizer.js';
+import { isHoliday } from './holidays.js';
 
 // 특정 발송 회차(issue)에 대해 콘텐츠를 골라 sends 테이블에 저장한다.
 //
@@ -69,6 +70,11 @@ async function main() {
 
   if (isWeekend(issueDate) && !args.force) {
     console.log(`${issueDate}은 주말이라 발송하지 않습니다 (--force로 강제 실행 가능).`);
+    return;
+  }
+
+  if (isHoliday(issueDate) && !args.force) {
+    console.log(`${issueDate}은 공휴일이라 발송하지 않습니다 (--force로 강제 실행 가능).`);
     return;
   }
 

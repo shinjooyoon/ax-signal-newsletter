@@ -10,6 +10,8 @@ import { AFFILIATE_SOURCES } from './constants.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DRY_RUN = process.argv.includes('--dry-run');
+const limitArg = process.argv.find((a) => a.startsWith('--limit='));
+const LIMIT = limitArg ? Number(limitArg.split('=')[1]) : Infinity;
 
 async function main() {
   const configPath = path.join(__dirname, '..', 'config', 'sources.json');
@@ -25,8 +27,11 @@ async function main() {
   // dry-run은 DB/Claude API 없이 RSS 파싱만 확인하는 모드
   const supabase = DRY_RUN ? null : getSupabase();
   const leafTags = DRY_RUN ? [] : await getLeafTags(supabase);
+  let savedCount = 0;
 
   for (const feed of feeds) {
+    if (savedCount >= LIMIT) break;
+
     console.log(`\n[수집 시작] ${feed.name} (${feed.url})`);
     let parsed;
     try {
@@ -39,6 +44,8 @@ async function main() {
     console.log(`  ${parsed.items.length}개 항목 발견`);
 
     for (const item of parsed.items) {
+      if (savedCount >= LIMIT) break;
+
       const title = item.title ?? '(제목 없음)';
       const url = item.link;
       const rawSnippet = item.contentSnippet ?? item.summary ?? '';
@@ -105,6 +112,7 @@ async function main() {
           }
         }
 
+        savedCount += 1;
         console.log(`  [저장 완료] ${title} — 태그: ${tags.map((t) => t.slug).join(', ') || '없음'}`);
       } catch (err) {
         // 항목 하나의 API 호출(요약/태깅)이 실패해도 전체 수집이 죽으면 안 된다 —
