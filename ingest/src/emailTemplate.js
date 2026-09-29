@@ -319,7 +319,7 @@ export function buildDigestHtml({
 
   <tr><td class="pad-x" style="padding:22px 40px 0 40px;" align="center">
     <p class="t-mute" style="margin:0; font-family:${FONT}; font-size:12px; line-height:1.7; color:#9AA1B0;">
-      평일 아침 7시에 보내드려요<br>
+      평일 아침 6시에 보내드려요 (공휴일 제외)<br>
       AX Signal — 관심 산업 분야 기반 AI/AX 뉴스레터
     </p>
     ${
