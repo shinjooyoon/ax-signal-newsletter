@@ -212,7 +212,7 @@ export async function saveTermOfDay(supabase, issueId, { term, definition, sourc
 export async function getTermForIssue(supabase, issueId) {
   const { data } = await supabase
     .from('terms')
-    .select('term, definition, source_content_id, content_items!source_content_id(title, url)')
+    .select('term, definition, content_items!source_content_id(title, url)')
     .eq('issue_id', issueId)
     .maybeSingle();
   if (!data) return null;
@@ -220,8 +220,7 @@ export async function getTermForIssue(supabase, issueId) {
     term: data.term,
     definition: data.definition,
     sourceTitle: data.content_items?.title ?? null,
-    sourceUrl: data.content_items?.url ?? null,
-    sourceId: data.source_content_id ?? null
+    sourceUrl: data.content_items?.url ?? null
   };
 }
 
