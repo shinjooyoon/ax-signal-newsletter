@@ -93,7 +93,7 @@ export default function SignupForm({ tags, defaultEmail = '' }) {
           className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-300 text-accent focus:ring-accent-soft"
         />
         <label htmlFor="consent" className="text-xs leading-relaxed text-neutral-500">
-          수집하는 개인정보(이메일, 이름)는 AX Signal 뉴스레터 발송 목적으로만 사용되며, 구독 해지 시 즉시 파기됩니다. 동의하지 않으실 경우 구독 신청이 제한될 수 있습니다.{' '}
+          수집하는 개인정보(이메일, 이름)는 AX Signal 뉴스레터 발송 목적으로만 사용되며, 구독 해지 시 즉시 파기됩니다. 뉴스레터 개선을 위해 메일 속 기사 링크의 클릭 여부를 기록하며, 기기·위치 정보는 수집하지 않습니다. 동의하지 않으실 경우 구독 신청이 제한될 수 있습니다.{' '}
           <span className="text-accent">(필수)</span>
         </label>
       </div>

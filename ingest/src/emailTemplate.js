@@ -55,8 +55,9 @@ function buildPreheader(items) {
   return headlines.join(' · ');
 }
 
-function renderHero(item) {
+function renderHero(item, linkFor) {
   if (!item) return '';
+  const href = linkFor(item, 'hero');
   const badge = displaySource(item);
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -65,7 +66,7 @@ function renderHero(item) {
           <tr><td class="hero-pad" style="padding:22px 24px 24px 24px;">
 
             <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-              <td style="font-family:${FONT}; font-size:11px; font-weight:800; letter-spacing:.14em;"><a href="${escapeHtml(item.url)}" style="color:#EA002C; text-decoration:none;">오늘의 시그널</a></td>
+              <td style="font-family:${FONT}; font-size:11px; font-weight:800; letter-spacing:.14em;"><a href="${escapeHtml(href)}" style="color:#EA002C; text-decoration:none;">오늘의 시그널</a></td>
             </tr></table>
 
             ${
@@ -76,7 +77,7 @@ function renderHero(item) {
                 : ''
             }
 
-            <a href="${escapeHtml(item.url)}" class="hero-title t-ink" style="display:block; margin:11px 0 0 0; font-family:${FONT}; font-size:21px; line-height:1.4; font-weight:800; color:#16181D; letter-spacing:-.02em;">
+            <a href="${escapeHtml(href)}" class="hero-title t-ink" style="display:block; margin:11px 0 0 0; font-family:${FONT}; font-size:21px; line-height:1.4; font-weight:800; color:#16181D; letter-spacing:-.02em;">
               ${escapeHtml(cleanTitle(item.title))}
             </a>
 
@@ -92,7 +93,7 @@ function renderHero(item) {
     </table>`;
 }
 
-function renderCompactItem(item, { labelColor, first }) {
+function renderCompactItem(item, { labelColor, first, linkFor, position }) {
   const label = displaySource(item);
   const divider = first
     ? ''
@@ -101,7 +102,7 @@ function renderCompactItem(item, { labelColor, first }) {
     ${divider}
     <tr><td class="pad-x" style="padding:${first ? 18 : 16}px 40px 0 40px;">
       ${label ? `<div style="font-family:${FONT}; font-size:11px; font-weight:700; color:${labelColor}; letter-spacing:.02em;">${escapeHtml(label)}</div>` : ''}
-      <a href="${escapeHtml(item.url)}" class="item-title t-ink" style="display:block; margin:5px 0 0 0; font-family:${FONT}; font-size:16px; line-height:1.45; font-weight:700; color:#16181D; letter-spacing:-.01em;">
+      <a href="${escapeHtml(linkFor(item, position))}" class="item-title t-ink" style="display:block; margin:5px 0 0 0; font-family:${FONT}; font-size:16px; line-height:1.45; font-weight:700; color:#16181D; letter-spacing:-.01em;">
         ${escapeHtml(cleanTitle(item.title))}
       </a>
       ${
@@ -114,9 +115,9 @@ function renderCompactItem(item, { labelColor, first }) {
 
 // SK 소식 = 계열사명을 브랜드 레드 텍스트로, 뉴스 = 매체명을 무채색 텍스트로 —
 // 박스형 배지는 히어로에만 쓰고 나머지는 컬러 텍스트 라벨만 써서 위계를 구분한다.
-function renderCompactSection(title, items, { titleColor, labelColor }) {
+function renderCompactSection(title, items, { titleColor, labelColor, linkFor, position }) {
   if (items.length === 0) return '';
-  const rows = items.map((item, idx) => renderCompactItem(item, { labelColor, first: idx === 0 })).join('');
+  const rows = items.map((item, idx) => renderCompactItem(item, { labelColor, first: idx === 0, linkFor, position })).join('');
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr><td class="pad-x" style="padding:22px 40px 0 40px;">
@@ -129,10 +130,10 @@ function renderCompactSection(title, items, { titleColor, labelColor }) {
 
 // 오늘 실린 콘텐츠에서 뽑은 용어 하나 + 뜻풀이. 마땅한 용어가 없는 날은 term이 null이라
 // 섹션 자체가 안 보인다(빈 제목줄만 남기지 않기).
-function renderTermOfDay(term) {
+function renderTermOfDay(term, linkFor) {
   if (!term) return '';
   const sourceLink = term.sourceUrl
-    ? `<a href="${escapeHtml(term.sourceUrl)}" class="t-mute" style="color:#9AA1B0; text-decoration:underline;">${escapeHtml(term.sourceTitle ?? '')}</a>`
+    ? `<a href="${escapeHtml(term.sourceId ? linkFor({ id: term.sourceId, url: term.sourceUrl }, 'term') : term.sourceUrl)}" class="t-mute" style="color:#9AA1B0; text-decoration:underline;">${escapeHtml(term.sourceTitle ?? '')}</a>`
     : '';
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -181,6 +182,13 @@ export function buildDigestHtml({
   digestToken,
   term
 }) {
+  // 기사 링크는 /r/[토큰]/[기사ID]를 거쳐 원문으로 간다 (클릭 기록용, web/app/r 참고).
+  // 토큰이나 기사 ID가 없으면(테스트 미리보기 등) 원문 주소를 그대로 쓴다.
+  const linkFor = (item, position) =>
+    digestToken && item?.id
+      ? `${baseUrl}/r/${encodeURIComponent(digestToken)}/${item.id}?p=${position}`
+      : item.url;
+
   const greeting = pickGreeting(subscriberName);
   const preheader = buildPreheader(items);
   const headerDate = formatHeaderDate(issueDate);
@@ -305,12 +313,12 @@ export function buildDigestHtml({
       </td></tr>
     </table>
 
-    ${renderHero(hero)}
-    ${renderCompactSection('SK 소식', skItems, { titleColor: '#EA002C', labelColor: '#EA002C' })}
-    ${renderCompactSection('뉴스', externalItems, { titleColor: '#2E5BFF', labelColor: '#9AA1B0' })}
+    ${renderHero(hero, linkFor)}
+    ${renderCompactSection('SK 소식', skItems, { titleColor: '#EA002C', labelColor: '#EA002C', linkFor, position: 'sk' })}
+    ${renderCompactSection('뉴스', externalItems, { titleColor: '#2E5BFF', labelColor: '#9AA1B0', linkFor, position: 'news' })}
     ${emptyTagHtml}
     ${fallbackHtml}
-    ${renderTermOfDay(term)}
+    ${renderTermOfDay(term, linkFor)}
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr><td style="height:40px; font-size:0; line-height:0;">&nbsp;</td></tr>
