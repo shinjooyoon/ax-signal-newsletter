@@ -77,6 +77,36 @@ function dropStale(items) {
 
 const CONTENT_FIELDS = 'id, title, url, summary, source, is_pinned, content_type, published_at, created_at';
 
+const normTitle = (t) => (t ?? '').replace(/\s+/g, ' ').trim();
+
+// 같은 기사가 URL만 다르게 여러 번 올라오는 경우(SK하이닉스 뉴스룸 등)가 있어서,
+// 이미 어디선가 발송된 기사와 제목이 같은 후보는 뺀다.
+async function getUsedTitles(supabase) {
+  const tables = ['pinned_content_history', 'tag_content_history', 'external_news_history'];
+  const ids = new Set();
+  for (const table of tables) {
+    const { data } = await supabase.from(table).select('content_item_id');
+    (data ?? []).forEach((r) => ids.add(r.content_item_id));
+  }
+  const idList = [...ids];
+  const titles = new Set();
+  for (let i = 0; i < idList.length; i += 100) {
+    const { data } = await supabase.from('content_items').select('title').in('id', idList.slice(i, i + 100));
+    (data ?? []).forEach((r) => titles.add(normTitle(r.title)));
+  }
+  return titles;
+}
+
+function dropDuplicateTitles(sortedItems, usedTitles) {
+  const seen = new Set(usedTitles);
+  return sortedItems.filter((item) => {
+    const t = normTitle(item.title);
+    if (seen.has(t)) return false;
+    seen.add(t);
+    return true;
+  });
+}
+
 /**
  * 같은 태그를 고른 구독자는 전부 같은 콘텐츠를 받도록, "다음에 뭘 보낼지"를
  * 구독자 단위가 아니라 전역(SK AX) / 태그 단위로 공유해서 결정한다.
@@ -91,7 +121,7 @@ export async function getPinnedPick(supabase) {
   const usedIds = new Set((usedRows ?? []).map((r) => r.content_item_id));
 
   const candidates = dropStale((pinned ?? []).filter((item) => !usedIds.has(item.id)));
-  const sorted = sortForSelection(candidates);
+  const sorted = dropDuplicateTitles(sortForSelection(candidates), await getUsedTitles(supabase));
   return sorted[0] ?? null;
 }
 
@@ -117,7 +147,7 @@ export async function getTagPicks(supabase, tagId) {
   const candidates = dropStale(
     (items ?? []).filter((item) => !item.is_pinned && AFFILIATE_SOURCES.has(item.source) && !usedIds.has(item.id))
   );
-  const sorted = sortForSelection(candidates);
+  const sorted = dropDuplicateTitles(sortForSelection(candidates), await getUsedTitles(supabase));
 
   return { affiliate: sorted.slice(0, 1) };
 }
@@ -143,7 +173,7 @@ export async function getExternalNewsPicks(supabase, count = 2) {
       (item) => !AFFILIATE_SOURCES.has(item.source) && !usedIds.has(item.id) && taggedIds.has(item.id)
     )
   );
-  const sorted = sortForSelection(candidates);
+  const sorted = dropDuplicateTitles(sortForSelection(candidates), await getUsedTitles(supabase));
   return sorted.slice(0, count);
 }
 

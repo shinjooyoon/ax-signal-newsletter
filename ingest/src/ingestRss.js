@@ -70,6 +70,18 @@ async function main() {
           continue;
         }
 
+        // 같은 기사가 URL만 다르게 여러 번 올라오는 피드(SK하이닉스 뉴스룸 등)는 제목으로도 거른다
+        const { data: sameTitle } = await supabase
+          .from('content_items')
+          .select('id')
+          .eq('source', feed.name)
+          .eq('title', title)
+          .limit(1);
+        if (sameTitle && sameTitle.length > 0) {
+          console.log(`  [스킵-제목중복] ${title}`);
+          continue;
+        }
+
         // 원문 스니펫을 그대로 저장/노출하면 저작권 문제가 생기므로 재서술한 요약만 저장한다.
         // 태깅 입력으로는 원문 스니펫이 더 정보량이 많으니 재서술 실패 시 원문을 대신 쓴다(저장은 안 함).
         const summary = await summarizeContent({ title, rawText: rawSnippet });
